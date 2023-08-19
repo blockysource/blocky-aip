@@ -20,11 +20,20 @@ import (
 	"github.com/blockysource/blocky-aip/filtering/token"
 )
 
-// AnyExpr is any ast expression.
-type AnyExpr interface {
-	Position() token.Position
-	String() string
+// SimpleExpr is a simple expression.
+// It can either be a restriction or a composite expression.
+//
+// EBNF:
+//
+// simple
+//    : restriction
+//    | composite
+//    ;
+type SimpleExpr interface {
 	UnquotedString() string
-	WriteStringTo(w *strings.Builder, unquoted bool)
+	String() string
+	WriteStringTo(sb *strings.Builder, unquoted bool)
+	Position() token.Position
+	isSimpleExpr()
 	isAstExpr()
 }

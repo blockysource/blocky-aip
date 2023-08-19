@@ -72,7 +72,6 @@ var (
 			fc := &ast.FunctionCall{
 				Name: make([]ast.NameExpr, 0, 10),
 			}
-			fc.SetUndefinedDecodedValue()
 			return fc
 		},
 	}
@@ -88,7 +87,6 @@ var (
 	textLiteralPool = sync.Pool{
 		New: func() any {
 			tl := &ast.TextLiteral{}
-			tl.SetUndefinedDecodedValue()
 			return tl
 		},
 	}
@@ -96,7 +94,6 @@ var (
 	stringLiteralPool = sync.Pool{
 		New: func() any {
 			sl := &ast.StringLiteral{}
-			sl.SetUndefinedDecodedValue()
 			return sl
 		},
 	}
@@ -218,18 +215,6 @@ func getRestrictionExpr() *ast.RestrictionExpr {
 	return restrictionExprPool.Get().(*ast.RestrictionExpr)
 }
 
-func putComparableExpr(e ast.ComparableExpr) {
-	if e == nil {
-		return
-	}
-	switch vt := e.(type) {
-	case *ast.MemberExpr:
-		putMemberLiteral(vt)
-	case *ast.FunctionCall:
-		putFunctionLiteral(vt)
-	}
-}
-
 func putMemberLiteral(e *ast.MemberExpr) {
 	if e == nil {
 		return
@@ -263,7 +248,6 @@ func putFunctionLiteral(e *ast.FunctionCall) {
 	putArgListExpr(e.ArgList)
 	e.ArgList = nil
 	e.Rparen = 0
-	e.SetUndefinedDecodedValue()
 	funcCallPool.Put(e)
 }
 
@@ -314,7 +298,7 @@ func putTextLiteral(e *ast.TextLiteral) {
 	}
 	e.Pos = 0
 	e.Value = ""
-	e.SetUndefinedDecodedValue()
+	e.IsTimestamp = false
 	textLiteralPool.Put(e)
 }
 
@@ -328,9 +312,6 @@ func putStringLiteral(e *ast.StringLiteral) {
 	}
 	e.Pos = 0
 	e.Value = ""
-	e.IsPrefixBased = false
-	e.IsSuffixBased = false
-	e.SetUndefinedDecodedValue()
 	stringLiteralPool.Put(e)
 }
 

@@ -1,0 +1,12 @@
+
+version: v1
+name: buf.build/blockyapis/blocky-aip
+deps:
+  - buf.build/googleapis/googleapis
+  - buf.build/blockyapis/blockyapis
+breaking:
+  use:
+    - FILE
+lint:
+  use:
+    - DEFAULT

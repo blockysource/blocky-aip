@@ -12,19 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ast
+package filtering
 
 import (
-	"strings"
-
-	"github.com/blockysource/blocky-aip/filtering/token"
+	"github.com/blockysource/blocky-aip/expr"
 )
 
-// AnyExpr is any ast expression.
-type AnyExpr interface {
-	Position() token.Position
-	String() string
-	UnquotedString() string
-	WriteStringTo(w *strings.Builder, unquoted bool)
-	isAstExpr()
+// Interpreter is an interface that provides abstraction for parsing a filter string to an expression.
+type Interpreter interface {
+	Parse(filter string) (expr.FilterExpr, error)
 }

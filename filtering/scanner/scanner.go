@@ -25,10 +25,13 @@ type Scanner struct {
 	src string
 
 	// scanning state
-	ch         rune // current character
-	offset     int  // character offset
-	err        ErrorHandler
-	ErrorCount int
+	ch              rune // current character
+	offset          int  // character offset
+	err             ErrorHandler
+	useStructs      bool
+	useArrays       bool
+	useInComparator bool
+	ErrorCount      int
 
 	initialized bool
 
@@ -42,17 +45,16 @@ type Scanner struct {
 
 type ErrorHandler func(pos token.Position, msg string)
 
-func NewScanner(src string) *Scanner {
-	return &Scanner{src: src}
-}
-
 // Reset prepares the scanner s to tokenize the text src by setting the scanner at the beginning of src.
-func (s *Scanner) Reset(src string, err ErrorHandler) {
+func (s *Scanner) Reset(src string, err ErrorHandler, useStructs, useArray, useIn bool) {
 	s.src = src
 	s.err = err
 	s.ch = ' '
 	s.offset = 0
 
+	s.useStructs = useStructs
+	s.useArrays = useArray
+	s.useInComparator = useIn
 	s.ErrorCount = 0
 	s.initialized = true
 
@@ -135,8 +137,7 @@ func (s *Scanner) scanOrPeekToken() (pos token.Position, tok token.Token, lit st
 
 	pos = s.pos()
 	var (
-		isText   bool
-		isString bool
+		isText, isString bool
 	)
 	switch s.ch {
 	case ' ', '\t', '\n', '\r':
@@ -146,7 +147,7 @@ func (s *Scanner) scanOrPeekToken() (pos token.Position, tok token.Token, lit st
 		tok = token.EQUAL
 		lit = "="
 	case ':':
-		tok = token.HAS
+		tok = token.COLON
 		lit = ":"
 	case '(':
 		tok = token.LPAREN
@@ -196,6 +197,34 @@ func (s *Scanner) scanOrPeekToken() (pos token.Position, tok token.Token, lit st
 		isString = true
 	case eof:
 		tok = token.EOF
+	case '[':
+		if s.useArrays {
+			tok = token.BRACKET_OPEN
+			lit = "["
+		} else {
+			isText = true
+		}
+	case ']':
+		if s.useArrays {
+			tok = token.BRACKET_CLOSE
+			lit = "]"
+		} else {
+			isText = true
+		}
+	case '{':
+		if s.useStructs {
+			tok = token.BRACE_OPEN
+			lit = "{"
+		} else {
+			isText = true
+		}
+	case '}':
+		if s.useStructs {
+			tok = token.BRACE_CLOSE
+			lit = "}"
+		} else {
+			isText = true
+		}
 	default:
 		isText = true
 	}
@@ -208,8 +237,7 @@ func (s *Scanner) scanOrPeekToken() (pos token.Position, tok token.Token, lit st
 		tok = token.STRING
 		lit = s.scanString()
 	} else {
-		tok = token.TEXT
-		lit = s.scanText()
+		tok, lit = s.scanText()
 
 		switch lit {
 		case "AND":
@@ -218,6 +246,10 @@ func (s *Scanner) scanOrPeekToken() (pos token.Position, tok token.Token, lit st
 			tok = token.OR
 		case "NOT":
 			tok = token.NOT
+		case "IN":
+			if s.useInComparator {
+				tok = token.IN
+			}
 		}
 	}
 	return
@@ -246,20 +278,117 @@ func isQuote(ch rune) bool {
 	return ch == '\'' || ch == '"'
 }
 
-func (s *Scanner) scanText() string {
+func (s *Scanner) scanText() (token.Token, string) {
 	offset := s.offset
 	sum := 0
+
+	var (
+		colonCount           int
+		firstColonBreakpoint Breakpoint
+		firstColonSum        int
+		thirdColonBreakpoint Breakpoint
+		thirdColonSum        int
+		gotEOF               bool
+	)
+	// RFC3339 Timestamp format: 2006-01-02T15:04:05Z07:00
 	for {
 		ch, w := s.next()
 		sum += w
 		if isEOF(ch) {
-			return s.src[offset-1:]
+			gotEOF = true
+			break
 		}
+
+		if s.useArrays && (ch == '[' || ch == ']') {
+			break
+		}
+		if s.useStructs && (ch == '{' || ch == '}') {
+			break
+		}
+
+		if ch == ':' {
+			colonCount++
+			if colonCount == 1 {
+				firstColonSum = sum
+				firstColonBreakpoint = s.Breakpoint()
+			}
+			if colonCount == 3 {
+				thirdColonSum = sum
+				thirdColonBreakpoint = s.Breakpoint()
+			}
+
+			// At most a timestamp can have 3 colons.
+			// If we have more than 3 colons, it either is a timestamp with a comparator (has)
+			if colonCount > 3 {
+				break
+			}
+			continue
+		}
+
 		if isWhitespace(ch) || isPeriod(ch) || ch == '(' || ch == ')' || ch == ',' || s.isComparator(ch) {
 			break
 		}
 	}
-	return s.src[offset-1 : offset+sum-1]
+	var lit string
+	if gotEOF {
+		lit = s.src[offset-1:]
+	} else {
+		lit = s.src[offset-1 : offset+sum-1]
+	}
+	switch colonCount {
+	case 0:
+		// This is a simple text literal.
+		return token.TEXT, lit
+	case 2:
+		// This might be an RFC3339 timestamp without timezone colon.
+		// i.e.: 2006-01-02T15:04:05Z (UTC)
+		// Verify that the literal is a valid timestamp.
+		isTimestamp := isValidTimestamp(lit)
+		if isTimestamp {
+			return token.TIMESTAMP, lit
+		}
+
+		// Otherwise, we need to restore the scanner to the first colon.
+		s.Restore(firstColonBreakpoint)
+		return token.TEXT, s.src[offset-1 : offset+firstColonSum-1]
+	case 3:
+		// This might be an RFC3339 timestamp with timezone colon.
+		// i.e.: 2006-01-02T15:04:05Z07:00 (UTC)
+		// Verify that the literal is a valid timestamp.
+		isTimestamp := isValidTimestamp(lit)
+		if isTimestamp {
+			return token.TIMESTAMP, lit
+		}
+
+		// Otherwise, lets check the literal up to the third colon,
+		// it might be a timestamp without timezone colon along with a comparator.
+		// i.e.: map.2006-01-02T15:04:05Z:any value related with the timestamp map key.
+		// Where the '2006-01-02T15:04:05Z' is a timestamp, the ':' is a comparator.
+		lit = s.src[offset-1 : offset+thirdColonSum-1]
+		isTimestamp = isValidTimestamp(lit)
+		if isTimestamp {
+			s.Restore(thirdColonBreakpoint)
+			return token.TIMESTAMP, lit
+		}
+		s.Restore(firstColonBreakpoint)
+		return token.TEXT, s.src[offset-1 : offset+firstColonSum-1]
+	case 4:
+		// This might be a timestamp with timezone and a comparator.
+		// i.e.: map.2006-01-02T15:04:05Z07:00:any value related with the timestamp map key.
+		// Where the '2006-01-02T15:04:05Z07:00' is a timestamp, the ':' is a comparator.
+		lit = s.src[offset-1 : offset+thirdColonSum-1]
+		isTimestamp := isValidTimestamp(lit)
+		if isTimestamp {
+			s.Restore(thirdColonBreakpoint)
+			return token.TIMESTAMP, lit
+		}
+		s.Restore(firstColonBreakpoint)
+		return token.TEXT, s.src[offset-1 : offset+firstColonSum-1]
+	default:
+		// We need to restore the scanner to the first colon.
+		s.Restore(firstColonBreakpoint)
+		return token.TEXT, s.src[offset-1 : offset+firstColonSum-1]
+	}
 }
 
 func isLetter(ch rune) bool {

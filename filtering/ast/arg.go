@@ -20,11 +20,19 @@ import (
 	"github.com/blockysource/blocky-aip/filtering/token"
 )
 
-// AnyExpr is any ast expression.
-type AnyExpr interface {
-	Position() token.Position
+// ArgExpr is either a Comparable or Composite
+//
+// EBNF:
+//
+// arg
+//    : comparable
+//    | composite
+//    ;
+type ArgExpr interface {
 	String() string
 	UnquotedString() string
-	WriteStringTo(w *strings.Builder, unquoted bool)
+	Position() token.Position
+	WriteStringTo(sb *strings.Builder, unquoted bool)
+	isArgExpr()
 	isAstExpr()
 }

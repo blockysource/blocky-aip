@@ -12,19 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ast
+package parser
 
 import (
-	"strings"
-
+	"github.com/blockysource/blocky-aip/filtering/ast"
 	"github.com/blockysource/blocky-aip/filtering/token"
 )
 
-// AnyExpr is any ast expression.
-type AnyExpr interface {
-	Position() token.Position
-	String() string
-	UnquotedString() string
-	WriteStringTo(w *strings.Builder, unquoted bool)
-	isAstExpr()
+func (p *Parser) parseArgExpr() (ast.ArgExpr, error) {
+	// Peek for the composite LPAREN token.
+	var isComposite bool
+	p.scanner.Peek(func(pos token.Position, tok token.Token, lit string) bool {
+		isComposite = tok == token.LPAREN
+		return false
+	})
+
+	if isComposite {
+		// Parse the composite expression.
+		return p.parseCompositeExpr()
+	}
+	return p.parseComparableExpr()
 }

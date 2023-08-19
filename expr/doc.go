@@ -12,19 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ast
-
-import (
-	"strings"
-
-	"github.com/blockysource/blocky-aip/filtering/token"
-)
-
-// AnyExpr is any ast expression.
-type AnyExpr interface {
-	Position() token.Position
-	String() string
-	UnquotedString() string
-	WriteStringTo(w *strings.Builder, unquoted bool)
-	isAstExpr()
-}
+// Package expr contain expression types that can be used to handle
+// AIP based requests.
+package expr

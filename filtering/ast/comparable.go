@@ -20,11 +20,23 @@ import (
 	"github.com/blockysource/blocky-aip/filtering/token"
 )
 
-// AnyExpr is any ast expression.
-type AnyExpr interface {
+// ComparableExpr is either a member or a function expression.
+// Comparable may either be a member or function.
+//
+// 	EBNF:
+//
+// 	comparable
+// 		: member
+// 		| function
+// 		| struct (extension)
+// 		| array (extension)
+// 		;
+type ComparableExpr interface {
 	Position() token.Position
-	String() string
 	UnquotedString() string
-	WriteStringTo(w *strings.Builder, unquoted bool)
+	String() string
+	WriteStringTo(sb *strings.Builder, unquoted bool)
+	isComparableExpr()
+	isArgExpr()
 	isAstExpr()
 }

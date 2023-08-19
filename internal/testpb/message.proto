@@ -1,0 +1,106 @@
+// Copyright 2023 The Blocky Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+package testpb;
+
+import "blocky/api/annotations.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/blockysource/blocky-aip/internal/testpb;testpb";
+
+enum Enum {
+  UNKNOWN = 0;
+  ONE = 1;
+  TWO = 2;
+  THREE = 3;
+}
+
+message Message {
+  string name = 1;
+
+  string str = 2;
+  int32 i32 = 3;
+  int64 i64 = 4;
+  uint32 u32 = 5;
+  uint64 u64 = 6;
+  sint32 s32 = 7;
+  sint64 s64 = 8;
+  fixed32 f32 = 9;
+  fixed64 f64 = 10;
+  sfixed32 sf32 = 11;
+  sfixed64 sf64 = 12;
+  bool bool = 13;
+  bytes bytes = 14;
+  float float = 15;
+  double double = 16;
+  repeated string rp_str = 17;
+  repeated int32 rp_i32 = 18;
+  repeated int64 rp_i64 = 19;
+  repeated uint32 rp_u32 = 20;
+  repeated uint64 rp_u64 = 21;
+  repeated sint32 rp_s32 = 22;
+  repeated sint64 rp_s64 = 23;
+  repeated fixed32 rp_f32 = 24;
+  repeated fixed64 rp_f64 = 25;
+  repeated sfixed32 rp_sf32 = 26;
+  repeated sfixed64 rp_sf64 = 27;
+  repeated bool rp_bool = 28;
+  repeated bytes rp_bytes = 29;
+  repeated float rp_float = 30;
+  repeated double rp_double = 31;
+
+  google.protobuf.Timestamp timestamp = 32;
+  google.protobuf.Duration duration = 33;
+  google.protobuf.Struct struct = 34;
+
+  repeated google.protobuf.Timestamp rp_timestamp = 35;
+  repeated google.protobuf.Duration rp_duration = 36;
+  repeated google.protobuf.Struct rp_struct = 37;
+
+  Enum enum = 38;
+  repeated Enum rp_enum = 39;
+
+  Message sub = 40;
+  repeated Message rp_sub = 41;
+
+  string no_filter = 42 [(blocky.api.query_opt) = FORBID_FILTERING];
+
+  Message no_filter_msg = 43 [(blocky.api.query_opt) = FORBID_FILTERING];
+
+  int32 i32_complexity = 44 [(blocky.api.complexity) = 44];
+
+  map<string, string> map_str_str = 45;
+  map<string, int32> map_str_i32 = 46;
+  map<string, int64> map_str_i64 = 47;
+  map<string, uint32> map_str_u32 = 48;
+  map<string, uint64> map_str_u64 = 49;
+  map<string, sint32> map_str_s32 = 50;
+  map<string, sint64> map_str_s64 = 51;
+  map<string, fixed32> map_str_f32 = 52;
+  map<string, fixed64> map_str_f64 = 53;
+  map<string, sfixed32> map_str_sf32 = 54;
+  map<string, sfixed64> map_str_sf64 = 55;
+  map<string, bool> map_str_bool = 56;
+  map<string, bytes> map_str_bytes = 57;
+  map<string, float> map_str_float = 58;
+  map<string, double> map_str_double = 59;
+  map<string, Enum> map_str_enum = 60;
+  map<string, Message> map_str_msg = 61;
+  map<string, google.protobuf.Timestamp> map_str_timestamp = 62;
+  map<string, google.protobuf.Duration> map_str_duration = 63;
+}

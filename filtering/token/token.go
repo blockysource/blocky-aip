@@ -23,8 +23,11 @@ const (
 	WS
 
 	literal_beg
-	TEXT   // abc
-	STRING // "abc" or 'abc'
+	TEXT // abc
+	// TIMESTAMP is a special type of literal, which is not defined by the standard EBNF.
+	// It is used to represent a TEXT literal, which is a valid timestamp.
+	TIMESTAMP // 2021-01-01T00:00:00Z
+	STRING         // "abc" or 'abc'
 	literal_end
 
 	keyword_beg
@@ -41,14 +44,19 @@ const (
 	GT    // >
 	GEQ   // >=
 	NEQ   // !=
-	HAS   // :
+	IN    // IN extension to the standard
 	comparator_end
 
 	additional_beg
-	LPAREN // (
-	RPAREN // )
-	COMMA  // ,
-	PERIOD // .
+	LPAREN        // (
+	RPAREN        // )
+	COMMA         // ,
+	PERIOD        // .
+	BRACKET_OPEN  // [
+	BRACKET_CLOSE // ]
+	BRACE_OPEN    // {
+	BRACE_CLOSE   // }
+	COLON         // :
 	additional_end
 )
 
@@ -57,8 +65,9 @@ var tokens = [...]string{
 	EOF:     "EOF",
 	WS:      "WS",
 
-	TEXT:   "TEXT",
-	STRING: "STRING",
+	TEXT:           "TEXT",
+	TIMESTAMP: "TIMESTAMP",
+	STRING:         "STRING",
 
 	AND:   "AND",
 	OR:    "OR",
@@ -71,18 +80,23 @@ var tokens = [...]string{
 	GT:    ">",
 	GEQ:   ">=",
 	NEQ:   "!=",
-	HAS:   ":",
+	IN:    "IN",
 
-	LPAREN: "(",
-	RPAREN: ")",
-	COMMA:  ",",
-	PERIOD: ".",
+	LPAREN:        "(",
+	RPAREN:        ")",
+	COMMA:         ",",
+	PERIOD:        ".",
+	BRACKET_OPEN:  "[",
+	BRACKET_CLOSE: "]",
+	BRACE_OPEN:    "{",
+	BRACE_CLOSE:   "}",
+	COLON:         ":",
 }
 
 func (t Token) String() string     { return tokens[t] }
 func (t Token) IsLiteral() bool    { return literal_beg < t && t < literal_end }
 func (t Token) IsKeyword() bool    { return t > keyword_beg && t < keyword_end }
-func (t Token) IsComparator() bool { return comparator_beg < t && t < comparator_end }
+func (t Token) IsComparator() bool { return comparator_beg < t && t < comparator_end || t == COLON }
 func (t Token) IsAdditional() bool { return additional_beg < t && t < additional_end }
 
 // Position is a position of the token in the source.

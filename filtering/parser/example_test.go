@@ -12,19 +12,34 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ast
+package parser_test
 
 import (
-	"strings"
+	"fmt"
+	"os"
 
-	"github.com/blockysource/blocky-aip/filtering/token"
+	"github.com/blockysource/blocky-aip/filtering/ast"
+	"github.com/blockysource/blocky-aip/filtering/parser"
 )
 
-// AnyExpr is any ast expression.
-type AnyExpr interface {
-	Position() token.Position
-	String() string
-	UnquotedString() string
-	WriteStringTo(w *strings.Builder, unquoted bool)
-	isAstExpr()
+func ExampleParse() {
+	p := parser.NewParser("m = 10")
+
+	parsed, err := p.Parse()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	defer parsed.Free()
+
+	r := parsed.Expr.Sequences[0].Factors[0].Terms[0].Expr.(*ast.RestrictionExpr)
+
+	left := r.Comparable.(*ast.MemberExpr).Value.(*ast.TextLiteral)
+
+	right := r.Arg.(*ast.MemberExpr).Value.(*ast.TextLiteral)
+
+	fmt.Printf("left: %s, right: %s", left.Value, right.Value)
+
+	// Output:
+	// left: m, right: 10
 }

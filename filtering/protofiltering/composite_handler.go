@@ -12,17 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package parser
+package protofiltering
 
 import (
+	"github.com/blockysource/blocky-aip/expr"
 	"github.com/blockysource/blocky-aip/filtering/ast"
 )
 
-// RestrictionHandler is a function that handles parsed *ast.RestrictionExpr.
-// It can be useful for customization of the parser.
-// It might be used for validating the type of the restriction
-// where Comparable equals to predefined value and Arg should match some pattern.
-// i.e.: with the requirements such as: Comparable = msg.email, the Arg should be a valid email.
-//       msg.email = "john.doe@gmail.com" should be rejected.
-// To match the name of the restriction's *ast.MemberExpr, use it's JoinedNameEquals("msg.name", false) method.
-type RestrictionHandler func(r *ast.RestrictionExpr) bool
+// HandleCompositeExpr handles an ast.CompositeExpr and returns an expression.
+func (b *Interpreter) HandleCompositeExpr(ctx *ParseContext, x *ast.CompositeExpr) (TryParseValueResult, error) {
+	// In a standard way we handle the composite expression, and surround it with a group expression.
+	res, err := b.HandleExpr(ctx, x.Expr)
+	if err != nil {
+		return res, err
+	}
+
+	// Acquire a composite expression and set the handled expression as its expression.
+	cps := expr.AcquireCompositeExpr()
+	cps.Expr = res.Expr
+
+	return TryParseValueResult{Expr: cps, IsIndirect: res.IsIndirect}, nil
+}

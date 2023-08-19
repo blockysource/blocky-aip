@@ -20,11 +20,31 @@ import (
 	"github.com/blockysource/blocky-aip/filtering/token"
 )
 
-// AnyExpr is any ast expression.
-type AnyExpr interface {
-	Position() token.Position
+// NameExpr is a name expression which may be either
+// a Text or KeyWord.
+//
+// EBNF:
+//
+// name
+//    : TEXT
+//    | KEYWORD
+//    ;
+type NameExpr interface {
+	// String returns the string representation of the name.
 	String() string
+
+	// UnquotedString returns the unquoted string, used for StringLiterals
 	UnquotedString() string
-	WriteStringTo(w *strings.Builder, unquoted bool)
+
+	// Position returns the position of the name.
+	Position() token.Position
+
+	// WriteStringTo writes the string representation of the value to the builder.
+	// If unquoted argument is set to true, the StringLiterals do not write its string
+	// representation surrounded with quotes.
+	WriteStringTo(sb *strings.Builder, unquoted bool)
+
+	// isNameExpr is a marker method for the interface.
+	isNameExpr()
 	isAstExpr()
 }
