@@ -97,19 +97,28 @@ func (b *Interpreter) HandleRestrictionExpr(ctx *ParseContext, x *ast.Restrictio
 			}
 		}
 
+		fd := field.Field
+		switch {
+		case mk != nil:
+			// If the left-hand side is a map key expr, set the field descriptor as map value.
+			fd = field.Field.MapValue()
+		case fd.Kind() == protoreflect.MessageKind && fd.IsMap() && cmp == expr.HAS:
+			fd = fd.MapKey()
+		}
+
 		// Try getting the value of the right hand side.
 		ve, err := b.TryParseValue(ctx, TryParseValueInput{
-			Field:         field.Field,
+			Field:         fd,
 			Value:         x.Arg,
 			AllowIndirect: true,
 			IsNullable:    IsFieldNullable(field.Field),
 		})
 		if err != nil {
 			// The right hand side is not a value expression, try parsing it as a selector.
-			switch xt := x.Arg.(type) {
+			switch at := x.Arg.(type) {
 			case *ast.MemberExpr:
 				// Try to get the named selector from the right hand side.
-				right, err2 := b.TryParseSelectorExpr(ctx, xt.Value, xt.Fields...)
+				right, err2 := b.TryParseSelectorExpr(ctx, at.Value, at.Fields...)
 				if err2 != nil {
 					// The right hand side is neither a value expression nor a selector expression.
 					var res TryParseValueResult
@@ -129,7 +138,7 @@ func (b *Interpreter) HandleRestrictionExpr(ctx *ParseContext, x *ast.Restrictio
 					// This is an internal error.
 					var res TryParseValueResult
 					if ctx.ErrHandler != nil {
-						res.ErrPos = xt.Position()
+						res.ErrPos = at.Position()
 						res.ErrMsg = "internal error: right hand side of restriction expression is not a field selector expression"
 					}
 					right.Expr.Free()
@@ -139,6 +148,22 @@ func (b *Interpreter) HandleRestrictionExpr(ctx *ParseContext, x *ast.Restrictio
 
 				lf := field.Field
 				rf := rightField.Field
+
+				// Check the ambiguity of the left and right hand side.
+				// This means that the left hand side ie equal to the right hand side directly.
+				// I.e.: field = field
+				if lf.FullName() == rf.FullName() && countTraversal(res.Expr) == countTraversal(right.Expr) {
+					// This is ambiguous and is not a valid filter.
+					var res TryParseValueResult
+					if ctx.ErrHandler != nil {
+						// Invalid value.
+						res.ErrPos = x.Arg.Position()
+						res.ErrMsg = fmt.Sprintf("the right hand side is ambiguous: %s", x.Arg.String())
+					}
+					right.Expr.Free()
+					left.Free()
+					return res, ErrAmbiguousField
+				}
 
 				var leftIsMapKey bool
 				switch {
@@ -227,7 +252,7 @@ func (b *Interpreter) HandleRestrictionExpr(ctx *ParseContext, x *ast.Restrictio
 				}
 
 				// Check if the right hand side is repeated and the left is not.
-				if rf.Cardinality() == protoreflect.Repeated && lf.Cardinality() != protoreflect.Repeated {
+				if rf.Cardinality() == protoreflect.Repeated && lf.Cardinality() != protoreflect.Repeated && !lf.IsMap() {
 					// If the comparator is different from IN, this is an error.
 					if x.Comparator.Type != ast.IN {
 						var res TryParseValueResult
@@ -249,6 +274,97 @@ func (b *Interpreter) HandleRestrictionExpr(ctx *ParseContext, x *ast.Restrictio
 				ex.Comparator = cmp
 				ex.Right = right.Expr
 				return TryParseValueResult{Expr: ex, IsIndirect: true}, nil
+			case *ast.FunctionCall:
+				argFn, ok := b.getFunctionDeclaration(ctx, at)
+				if !ok {
+					var res TryParseValueResult
+					if ctx.ErrHandler != nil {
+						res.ErrPos = at.Pos
+						res.ErrMsg = fmt.Sprintf("function: %s undefined", at.JoinedName())
+					}
+					return res, ErrInvalidValue
+				}
+
+				if argFn.ServiceCall() {
+					// This is not a valid value expression.
+					var res TryParseValueResult
+					if ctx.ErrHandler != nil {
+						res.ErrPos = at.Pos
+						res.ErrMsg = fmt.Sprintf("function: %s can't be as a comparator argument", at.JoinedName())
+					}
+					left.Free()
+					return res, ErrInvalidValue
+				} else {
+					// Try to match the kind of resulting value with the argument declaration.
+					rt := argFn.Returning
+
+					if rt.FieldKind != fd.Kind() {
+						var res TryParseValueResult
+						if ctx.ErrHandler != nil {
+							res.ErrPos = x.Position()
+							res.ErrMsg = fmt.Sprintf("function call %s is not of type %s", at.JoinedName(), rt.FieldKind)
+						}
+						left.Free()
+						return res, ErrInvalidValue
+					}
+
+					if rt.EnumDescriptor != nil && rt.EnumDescriptor.FullName() != fd.Enum().FullName() {
+						var res TryParseValueResult
+						if ctx.ErrHandler != nil {
+							res.ErrPos = x.Position()
+							res.ErrMsg = fmt.Sprintf("function call %s is not of type %s", at.JoinedName(), rt.EnumDescriptor.FullName())
+						}
+						left.Free()
+						return res, ErrInvalidValue
+					}
+
+					if fd.Message() != nil && fd.IsMap() && !rt.IsMap() {
+						if cmp != expr.HAS {
+							var res TryParseValueResult
+							if ctx.ErrHandler != nil {
+								res.ErrPos = x.Position()
+								res.ErrMsg = fmt.Sprintf("function call %s does not return a map value", at.JoinedName())
+							}
+							left.Free()
+							return res, ErrInvalidValue
+						}
+					}
+
+					if fd.Message() != nil && fd.Message().FullName() != rt.Message().FullName() {
+						var res TryParseValueResult
+						if ctx.ErrHandler != nil {
+							res.ErrPos = x.Position()
+							res.ErrMsg = fmt.Sprintf("function call %s is not of type %s", at.JoinedName(), rt.Message().FullName())
+						}
+						left.Free()
+						return res, ErrInvalidValue
+					}
+
+					if fd.Cardinality() == protoreflect.Repeated && rt.Cardinality() != protoreflect.Repeated {
+						if cmp != expr.IN {
+							var res TryParseValueResult
+							if ctx.ErrHandler != nil {
+								res.ErrPos = x.Position()
+								res.ErrMsg = fmt.Sprintf("function call %s is repeated", at.JoinedName())
+							}
+							left.Free()
+							return res, ErrInvalidValue
+						}
+					}
+				}
+
+				// Call right hand side.
+				rfn, err := b.tryParseAndCallFunction(ctx, at, argFn, true)
+				if err != nil {
+					left.Free()
+					return rfn, err
+				}
+
+				ce := expr.AcquireCompareExpr()
+				ce.Left = left
+				ce.Comparator = cmp
+				ce.Right = rfn.Expr
+				return TryParseValueResult{Expr: ce, IsIndirect: res.IsIndirect || rfn.IsIndirect}, nil
 			default:
 				// The right hand side is not a selector expression.
 				// Thus return an error.
@@ -262,8 +378,8 @@ func (b *Interpreter) HandleRestrictionExpr(ctx *ParseContext, x *ast.Restrictio
 		switch vt := ve.Expr.(type) {
 		case *expr.ValueExpr:
 			// The right hand side is a value expression,
-			// if the left hand side is a map key or a repeated field, the operator must be IN.
-			if (mk != nil || field.Field.Cardinality() == protoreflect.Repeated) && cmp != expr.IN {
+			// if the left hand side is a map key or a repeated field, the operator must be HAS.
+			if (mk != nil || field.Field.Cardinality() == protoreflect.Repeated) && cmp != expr.HAS {
 				var res TryParseValueResult
 				if ctx.ErrHandler != nil {
 					res.ErrPos = x.Comparator.Position()
@@ -278,7 +394,7 @@ func (b *Interpreter) HandleRestrictionExpr(ctx *ParseContext, x *ast.Restrictio
 			// The right hand side is an array expression,
 			// check if the left hand side is either a repeated field or a
 			// single field with IN comparator.
-			if field.Field.Cardinality() != protoreflect.Repeated && cmp != expr.IN {
+			if fd.Cardinality() != protoreflect.Repeated && cmp != expr.IN {
 				var res TryParseValueResult
 				if ctx.ErrHandler != nil {
 					res.ErrPos = x.Comparator.Position()
@@ -291,7 +407,7 @@ func (b *Interpreter) HandleRestrictionExpr(ctx *ParseContext, x *ast.Restrictio
 		case *expr.MapValueExpr:
 			// The right hand side is a map value expression,
 			// The left hand side must be a map field (NOT a map key).
-			if !field.Field.IsMap() || mk != nil {
+			if !fd.IsMap() || mk != nil {
 				var res TryParseValueResult
 				if ctx.ErrHandler != nil {
 					res.ErrPos = x.Arg.Position()
@@ -327,11 +443,11 @@ func (b *Interpreter) HandleRestrictionExpr(ctx *ParseContext, x *ast.Restrictio
 			}
 
 			// If the left hand side is repeated field than it is an error.
-			if field.Field.Cardinality() == protoreflect.Repeated {
+			if fd.Cardinality() == protoreflect.Repeated {
 				var res TryParseValueResult
 				if ctx.ErrHandler != nil {
 					res.ErrPos = x.Comparator.Position()
-					res.ErrMsg = fmt.Sprintf("cannot compare a repeated field: %s with a comparator: %s", field.Field.FullName(), x.Comparator.String())
+					res.ErrMsg = fmt.Sprintf("cannot compare a repeated field: %s with a comparator: %s", fd.FullName(), x.Comparator.String())
 				}
 				left.Free()
 				vt.Free()
@@ -925,12 +1041,34 @@ func traverseLastFieldExpr(in expr.FilterExpr) (*expr.FieldSelectorExpr, *expr.M
 			e = xt.Traversal
 		case *expr.MapKeyExpr:
 			if xt.Traversal == nil {
-				return nil, nil, false
+				return fe, xt, true
 			}
 			mk = xt
 			e = xt.Traversal
 		default:
 			return fe, mk, true
 		}
+	}
+}
+
+func countTraversal(in expr.FilterExpr) int {
+	var count int
+	e := in
+	for {
+		switch xt := e.(type) {
+		case *expr.FieldSelectorExpr:
+			if xt.Traversal == nil {
+				return count
+			}
+			e = xt.Traversal
+		case *expr.MapKeyExpr:
+			if xt.Traversal == nil {
+				return count
+			}
+			e = xt.Traversal
+		default:
+			return count
+		}
+		count++
 	}
 }

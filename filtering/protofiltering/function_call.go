@@ -15,6 +15,7 @@
 package protofiltering
 
 import (
+	"errors"
 	"fmt"
 
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -99,9 +100,6 @@ type (
 	}
 	// FunctionCallArgumentDeclaration is a declaration of a function call argument.
 	FunctionCallArgumentDeclaration struct {
-		// Index is the index of the argument in the function call.
-		Index int
-
 		// Indirect is true if the argument might take a non value
 		// indirect form of the filtered message field.
 		// The function call with indirect argument returns
@@ -174,9 +172,35 @@ type (
 	}
 )
 
+func (n FunctionName) String() string {
+	return fmt.Sprintf("%s.%s", n.PkgName, n.Name)
+}
+
 // ServiceCall returns true if the function call is a service call.
 func (f *FunctionCallDeclaration) ServiceCall() bool {
 	return f.Returning == nil
+}
+
+// Validate validates the function call declaration.
+func (f *FunctionCallDeclaration) Validate() error {
+	if f.Name.PkgName == "" && f.Name.Name == "" {
+		return errors.New("undefined function name")
+	}
+
+	// Validate arguments.
+	for i, arg := range f.Arguments {
+		if err := arg.Validate(); err != nil {
+			return fmt.Errorf("fn: %s, arg %d: %w", f.Name, i, err)
+		}
+	}
+
+	// Validate returning field.
+	if f.Returning != nil {
+		if err := f.Returning.Validate(); err != nil {
+			return fmt.Errorf("fn: %s, returning: %w", f.Name, err)
+		}
+	}
+	return nil
 }
 
 // Compile-time check that *FunctionCallArgumentDeclaration implements FieldDescriptor.
@@ -241,6 +265,30 @@ func (f *FunctionCallArgumentDeclaration) MapValue() protoreflect.FieldDescripto
 	return f.MapValueDesc
 }
 
+// Validate validates the function call argument declaration.
+func (f *FunctionCallArgumentDeclaration) Validate() error {
+	if f.FieldKind == protoreflect.Kind(0) {
+		return errors.New("undefined field kind")
+	}
+
+	if f.FieldKind == protoreflect.MessageKind && f.MessageDescriptor == nil {
+		return errors.New("undefined message descriptor")
+	}
+
+	if f.FieldKind == protoreflect.EnumKind && f.EnumDescriptor == nil {
+		return errors.New("undefined enum descriptor")
+	}
+
+	if f.MapKeyDesc != nil && f.MapValueDesc == nil || f.MapKeyDesc == nil && f.MapValueDesc != nil {
+		return errors.New("undefined map key or value descriptor")
+	}
+
+	if f.IsRepeated && f.IsNullable {
+		return errors.New("repeated field cannot be nullable")
+	}
+	return nil
+}
+
 // Compile-time check that *FunctionCallReturningDeclaration implements FieldDescriptor.
 var _ FieldDescriptor = (*FunctionCallReturningDeclaration)(nil)
 
@@ -300,6 +348,32 @@ func (f *FunctionCallReturningDeclaration) MapValue() protoreflect.FieldDescript
 		return nil
 	}
 	return f.MapValueDesc
+}
+
+func (f *FunctionCallReturningDeclaration) Validate() error {
+	if f.ServiceCalled {
+		return nil
+	}
+	if f.FieldKind == protoreflect.Kind(0) {
+		return errors.New("undefined field kind")
+	}
+
+	if f.FieldKind == protoreflect.MessageKind && f.MessageDescriptor == nil {
+		return errors.New("undefined message descriptor")
+	}
+
+	if f.FieldKind == protoreflect.EnumKind && f.EnumDescriptor == nil {
+		return errors.New("undefined enum descriptor")
+	}
+
+	if f.MapKeyDesc != nil && f.MapValueDesc == nil || f.MapKeyDesc == nil && f.MapValueDesc != nil {
+		return errors.New("undefined map key or value descriptor")
+	}
+
+	if f.IsRepeated && f.IsNullable {
+		return errors.New("repeated field cannot be nullable")
+	}
+	return nil
 }
 
 // TryParseFunctionCall handles an ast.FunctionCall by interpreting the function call,

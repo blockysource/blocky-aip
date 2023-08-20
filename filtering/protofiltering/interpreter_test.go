@@ -83,6 +83,105 @@ func TestInterpreter_Parse(t *testing.T) {
 			filter:  tstMapStringI64FieldEqDirect,
 			checkFn: testMapStringI64FieldEqDirect,
 		},
+		{
+			name:    "map string uint32 field EQ direct",
+			filter:  tstMapStringU32FieldEqDirect,
+			checkFn: testMapStringU32FieldEqDirect,
+		},
+		{
+			name:    "map string uint64 field EQ direct",
+			filter:  tstMapStringU64FieldEqDirect,
+			checkFn: testMapStringU64FieldEqDirect,
+		},
+		{
+			name:    "map string sint32 field EQ direct",
+			filter:  tstMapStringS32FieldEqDirect,
+			checkFn: testMapStringS32FieldEqDirect,
+		},
+		{
+			name:    "map string sint64 field EQ direct",
+			filter:  tstMapStringS64FieldEqDirect,
+			checkFn: testMapStringS64FieldEqDirect,
+		},
+		{
+			name:    "duration field EQ direct",
+			filter:  tstDurationFieldEQDirect,
+			checkFn: testDurationFieldEQDirect,
+		},
+		{
+			name:    "duration field EQ indirect",
+			filter:  tstDurationFieldEQIndirect,
+			checkFn: testDurationFieldEQIndirect,
+		},
+		{
+			name:   "duration field EQ indirect ambiguous",
+			filter: "duration = duration",
+			isErr:  true,
+			err:    ErrAmbiguousField,
+		},
+		{
+			name:    "duration field GE direct",
+			filter:  tstDurationFieldGEDirect,
+			checkFn: testDurationFieldGEDirect,
+		},
+		{
+			name:    "duration field EQ fractal direct",
+			filter:  tstDurationFieldEQFractalDirect,
+			checkFn: testDurationFieldEQFractalDirect,
+		},
+		{
+			name:    "duration field EQ struct direct",
+			filter:  tstDurationFieldEQStructDirect,
+			checkFn: testDurationFieldEQStructDirect,
+		},
+		{
+			name:    "duration field IN array direct",
+			filter:  tstDurationFieldINArrayDirect,
+			checkFn: testDurationFieldINArrayDirect,
+		},
+		{
+			name:    "map string duration map key field HAS direct",
+			filter:  tstMapStringDurationFieldHasDirect,
+			checkFn: testMapStringDurationFieldHasDirect,
+		},
+		{
+			name:    "repeated duration has direct",
+			filter:  tstRepeatedDurationHasDirect,
+			checkFn: testRepeatedDurationHasDirect,
+		},
+		{
+			name:   "duration field EQ invalid value",
+			filter: `duration = "invalid"`,
+			isErr:  true,
+			err:    ErrInvalidValue,
+		},
+		{
+			name:   "duration field EQ invalid duration value",
+			filter: `duration = duration{}`,
+			isErr:  true,
+			err:    ErrInvalidValue,
+		},
+		{
+			name:    "timestamp field EQ direct",
+			filter:  tstTimestampFieldEQDirect,
+			checkFn: testTimestampFieldEQDirect,
+		},
+		{
+			name:    "timestamp field EQ indirect",
+			filter:  tstTimestampFieldEQIndirect,
+			checkFn: testTimestampFieldEQIndirect,
+		},
+		{
+			name:   "timestamp field EQ ambiguous",
+			filter: `timestamp = timestamp`,
+			isErr:  true,
+			err:    ErrAmbiguousField,
+		},
+		{
+			name: "timestamp field IN array direct",
+			filter: tstTimestampFieldInArrayDirect,
+			checkFn: testTimestampFieldInArrayDirect,
+		},
 	}
 	for _, tt := range tc {
 		t.Run(tt.name, func(t *testing.T) {

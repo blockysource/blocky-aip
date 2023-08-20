@@ -100,7 +100,7 @@ func (b *Interpreter) TryParseSelectorExpr(ctx *ParseContext, value ast.ValueExp
 		return res, ErrInvalidAST
 	}
 
-	if len(args) > 0 && field.Cardinality() == protoreflect.Repeated {
+	if len(args) > 0 && field.Cardinality() == protoreflect.Repeated && !field.IsMap() {
 		// Cannot traverse through repeated fields.
 		var res TryParseValueResult
 		if ctx.ErrHandler != nil {
@@ -150,7 +150,7 @@ func (b *Interpreter) TryParseSelectorExpr(ctx *ParseContext, value ast.ValueExp
 
 		switch pt := parent.(type) {
 		case *expr.FieldSelectorExpr:
-			if pt.Field.Cardinality() == protoreflect.Repeated {
+			if pt.Field.Cardinality() == protoreflect.Repeated && !pt.Field.IsMap() {
 				// Cannot traverse through repeated fields.
 				var res TryParseValueResult
 				if ctx.ErrHandler != nil {

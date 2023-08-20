@@ -16,6 +16,7 @@ package protofiltering
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 
 	"google.golang.org/grpc/codes"
@@ -45,6 +46,9 @@ var (
 
 	// ErrInternal is an internal error done during interpretation.
 	ErrInternal = errors.New("internal error")
+
+	// ErrAmbiguousField is an error that is returned when a field is ambiguous.
+	ErrAmbiguousField = errors.New("ambiguous field selector")
 )
 
 // Interpreter is an interpreter that can parse a query string and return an expression.
@@ -68,6 +72,29 @@ func ErrHandlerOpt(errorHandler func(pos token.Position, msg string)) Option {
 			return errors.New("error handler is already set")
 		}
 		i.errHandlerFn = errorHandler
+		return nil
+	}
+}
+
+// RegisterFunction is an Option that registers a function call declaration within the interpreter.
+// Once registered, the function can be used in the filter.
+func RegisterFunction(fn *FunctionCallDeclaration) Option {
+	return func(i *Interpreter) error {
+		if i.functionCallDeclarations == nil {
+			i.functionCallDeclarations = make(map[string]*FunctionCallDeclaration)
+		}
+
+		fnFullName := fn.Name.String()
+		if _, ok := i.functionCallDeclarations[fnFullName]; ok {
+			return fmt.Errorf("function %q is already registered", fnFullName)
+		}
+
+		// Verify if the declaration is valid.
+		if err := fn.Validate(); err != nil {
+			return err
+		}
+
+		i.functionCallDeclarations[fnFullName] = fn
 		return nil
 	}
 }
