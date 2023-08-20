@@ -15,11 +15,7 @@
 package ast
 
 import (
-	"errors"
-	"fmt"
-	"strconv"
 	"strings"
-	"time"
 
 	"github.com/blockysource/blocky-aip/filtering/token"
 )
@@ -142,93 +138,4 @@ func (m *MemberExpr) Position() token.Position {
 }
 func (*MemberExpr) isComparableExpr() {}
 func (*MemberExpr) isArgExpr()        {}
-
-var (
-	ErrMemberNotFloat    = errors.New("member expression is not a float64")
-	ErrMemberNotDuration = errors.New("member expression is not a time.Duration")
-	ErrMemberNotTime     = errors.New("member expression is not a time.Time")
-)
-
-// DecodeFloat64 tries to decode a member expression as a float64 value.
-// This can be satisfied in two cases:
-// 1. The member expression contains only a Value expression which is an integer,
-//    that type can be converted to float64.
-// 2. The member expression contains a Value expression along with a single field
-//    which is a TextLiteral and along with the Value expression forms a float64 value.
-func (m *MemberExpr) DecodeFloat64() (float64, error) {
-	if len(m.Fields) == 0 {
-		v, ok := m.Value.(*TextLiteral)
-		if !ok {
-			return 0, ErrMemberNotFloat
-		}
-
-		f, err := strconv.ParseFloat(v.Value, 64)
-		if err != nil {
-			return 0, err
-		}
-		return f, nil
-	}
-
-	if len(m.Fields) != 1 {
-		return 0, ErrMemberNotFloat
-	}
-
-	v, ok := m.Value.(*TextLiteral)
-	if !ok {
-		return 0, ErrMemberNotFloat
-	}
-
-	f, ok := m.Fields[0].(*TextLiteral)
-	if !ok {
-		return 0, ErrMemberNotFloat
-	}
-
-	fl, err := strconv.ParseFloat(fmt.Sprintf("%s.%s", v.Value, f.Value), 64)
-	if err != nil {
-		return 0, err
-	}
-	return fl, nil
-}
-
-// DecodeDuration tries to decode a member expression as a time.Duration value.
-// This can be satisfied in two cases:
-// 1. The member expression contains only a Value expression which is an integer with a 's', 'm', 'h', 'd' etc. suffix,
-//    that type can be converted to time.Duration.
-// 2. The member expression contains a Value expression along with a single field
-//    which is a TextLiteral and along with the Value expression (fractional) forms a time.Duration value.
-func (m *MemberExpr) DecodeDuration() (time.Duration, error) {
-	if len(m.Fields) == 0 {
-		v, ok := m.Value.(*TextLiteral)
-		if !ok {
-			return 0, ErrMemberNotDuration
-		}
-
-		d, err := time.ParseDuration(v.Value)
-		if err != nil {
-			return 0, err
-		}
-		return d, nil
-	}
-
-	if len(m.Fields) != 1 {
-		return 0, ErrMemberNotDuration
-	}
-
-	v, ok := m.Value.(*TextLiteral)
-	if !ok {
-		return 0, ErrMemberNotDuration
-	}
-
-	f, ok := m.Fields[0].(*TextLiteral)
-	if !ok {
-		return 0, ErrMemberNotDuration
-	}
-
-	d, err := time.ParseDuration(fmt.Sprintf("%s.%s", v.Value, f.Value))
-	if err != nil {
-		return 0, err
-	}
-	return d, nil
-}
-
-func (*MemberExpr) isAstExpr() {}
+func (*MemberExpr) isAstExpr()        {}

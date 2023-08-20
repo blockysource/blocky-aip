@@ -547,7 +547,7 @@ func (b *Interpreter) tryParseAndCallFunction(ctx *ParseContext, x *ast.Function
 					}
 
 					// Check if the field type matches.
-					if fd.Kind() != ad.FieldKind {
+					if !isKindComparable(fd.Kind(), ad.Kind()) {
 						var res TryParseValueResult
 						if ctx.ErrHandler != nil {
 							res.ErrPos = x.Position()

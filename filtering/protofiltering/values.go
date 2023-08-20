@@ -758,9 +758,6 @@ func (b *Interpreter) TryParseWellKnownStructField(ctx *ParseContext, in TryPars
 	}
 }
 
-
-
-
 // TryParseBooleanField tries to parse a boolean field.
 // It can be a single boolean value or a repeated boolean value.
 func (b *Interpreter) TryParseBooleanField(ctx *ParseContext, in TryParseValueInput) (TryParseValueResult, error) {
@@ -989,10 +986,6 @@ func (b *Interpreter) TryParseFloatField(ctx *ParseContext, in TryParseValueInpu
 	}
 	return TryParseValueResult{}, ErrInvalidAST
 }
-
-
-
-
 
 // TryParseBytesField tries to parse a bytes field.
 // It can be a single bytes value or a repeated bytes value.
@@ -1239,5 +1232,41 @@ func GetFieldComplexity(fd FieldDescriptor) int64 {
 		return 1
 	default:
 		return 1
+	}
+}
+
+func isKindComparable(k1, k2 protoreflect.Kind) bool {
+	if k1 == k2 {
+		return true
+	}
+
+	switch k1 {
+	case protoreflect.Int32Kind, protoreflect.Int64Kind, protoreflect.Sint32Kind, protoreflect.Sint64Kind, protoreflect.Sfixed32Kind, protoreflect.Sfixed64Kind:
+		switch k2 {
+		case protoreflect.Int32Kind, protoreflect.Int64Kind, protoreflect.Sint32Kind, protoreflect.Sint64Kind, protoreflect.Sfixed32Kind, protoreflect.Sfixed64Kind:
+			return true
+		case protoreflect.Uint32Kind, protoreflect.Uint64Kind, protoreflect.Fixed32Kind, protoreflect.Fixed64Kind:
+			return true
+		default:
+			return false
+		}
+	case protoreflect.Uint32Kind, protoreflect.Uint64Kind, protoreflect.Fixed32Kind, protoreflect.Fixed64Kind:
+		switch k2 {
+		case protoreflect.Uint32Kind, protoreflect.Uint64Kind, protoreflect.Fixed32Kind, protoreflect.Fixed64Kind:
+			return true
+		case protoreflect.Int32Kind, protoreflect.Int64Kind, protoreflect.Sint32Kind, protoreflect.Sint64Kind, protoreflect.Sfixed32Kind, protoreflect.Sfixed64Kind:
+			return true
+		default:
+			return false
+		}
+	case protoreflect.FloatKind, protoreflect.DoubleKind:
+		switch k2 {
+		case protoreflect.FloatKind, protoreflect.DoubleKind:
+			return true
+		default:
+			return false
+		}
+	default:
+		return false
 	}
 }

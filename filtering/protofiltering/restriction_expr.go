@@ -184,7 +184,7 @@ func (b *Interpreter) HandleRestrictionExpr(ctx *ParseContext, x *ast.Restrictio
 
 				// This means that the right hand side is a value of the map.
 				// We need to check the type of the map value.
-				if lf.Kind() != rf.Kind() {
+				if !isKindComparable(lf.Kind(), rf.Kind()) {
 					var res TryParseValueResult
 					if ctx.ErrHandler != nil {
 						// Invalid value.
@@ -721,7 +721,7 @@ func (b *Interpreter) HandleRestrictionExpr(ctx *ParseContext, x *ast.Restrictio
 
 				// This means that the right hand side is a value of the map.
 				// We need to check the type of the map value.
-				if lf.Kind() != rf.Kind() {
+				if isKindComparable(lf.Kind(), rf.Kind()) {
 					var res TryParseValueResult
 					if ctx.ErrHandler != nil {
 						// Invalid value.

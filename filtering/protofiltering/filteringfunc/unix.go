@@ -63,8 +63,13 @@ var unixFunc = protofiltering.FunctionCallDeclaration{
 
 		switch ve := args[0].(type) {
 		case *expr.ValueExpr:
-			i64, ok := ve.Value.(int64)
-			if !ok {
+			var i64 int64
+			switch vt := ve.Value.(type) {
+			case int64:
+				i64 = vt
+			case uint64:
+				i64 = int64(vt)
+			default:
 				return protofiltering.FunctionCallArgument{}, fmt.Errorf("input value is not a valid int64 value expression: %T", ve.Value)
 			}
 

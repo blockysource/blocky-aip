@@ -17,6 +17,8 @@ package protofiltering
 import (
 	"testing"
 
+	"google.golang.org/protobuf/reflect/protoreflect"
+
 	"github.com/blockysource/blocky-aip/expr"
 	"github.com/blockysource/blocky-aip/filtering/token"
 	"github.com/blockysource/blocky-aip/internal/testpb"
@@ -340,6 +342,117 @@ func TestInterpreter_Parse(t *testing.T) {
 			filter:  tstS64FieldEQNegativeDirect,
 			checkFn: testS64FieldEQNegativeDirect,
 		},
+		{
+			name:    "u32 field EQ direct",
+			filter:  tstU32FieldEQDirect,
+			checkFn: testU32FieldEQDirect,
+		},
+		{
+			name:    "u32 field EQ indirect",
+			filter:  tstU32FieldEQIndirect,
+			checkFn: testU32FieldEQIndirect,
+		},
+		{
+			name:    "u32 field IN array direct",
+			filter:  tstU32FieldINArray,
+			checkFn: testU32FieldINArray,
+		},
+		{
+			name:   "u32 field EQ invalid string value",
+			filter: `u32 = "invalid"`,
+			isErr:  true,
+			err:    ErrInvalidValue,
+		},
+		{
+			name:   "u32 field EQ invalid text value",
+			filter: `u32 = some_text`,
+			isErr:  true,
+			err:    ErrInvalidValue,
+		},
+		{
+			name:   "u32 field EQ ambiguous",
+			filter: `u32 = u32`,
+			isErr:  true,
+			err:    ErrAmbiguousField,
+		},
+		{
+			name:    "u32 field IN array indirect",
+			filter:  tstU32FieldINArrayIndirect,
+			checkFn: testU32FieldINArrayIndirect,
+		},
+		{
+			name:    "u64 field EQ direct",
+			filter:  tstU64FieldEQDirect,
+			checkFn: testU64FieldEQDirect,
+		},
+		{
+			name:    "u64 field EQ indirect",
+			filter:  tstU64FieldEQIndirect,
+			checkFn: testU64FieldEQIndirect,
+		},
+		{
+			name:    "u64 field IN array direct",
+			filter:  tstU64FieldINArray,
+			checkFn: testU64FieldINArray,
+		},
+		{
+			name:   "u64 field EQ invalid string value",
+			filter: `u64 = "invalid"`,
+			isErr:  true,
+			err:    ErrInvalidValue,
+		},
+		{
+			name:   "u64 field EQ invalid text value",
+			filter: `u64 = some_text`,
+			isErr:  true,
+			err:    ErrInvalidValue,
+		},
+		{
+			name:   "u64 field EQ ambiguous",
+			filter: `u64 = u64`,
+			isErr:  true,
+			err:    ErrAmbiguousField,
+		},
+		{
+			name:    "u64 field IN array indirect",
+			filter:  tstU64FieldINArrayIndirect,
+			checkFn: testU64FieldINArrayIndirect,
+		},
+		{
+			name:    "u64 field EQ indirect u32",
+			filter:  `u64 = u32`,
+			checkFn: testIndirectFields("u64", "u32"),
+		},
+		{
+			name:    "u64 field EQ indirect i32",
+			filter:  `u64 = i32`,
+			checkFn: testIndirectFields("u64", "i32"),
+		},
+		{
+			name:    "u64 field EQ indirect s32",
+			filter:  `u64 = s32`,
+			checkFn: testIndirectFields("u64", "s32"),
+		},
+		{
+			name:    "u64 field EQ indirect s64",
+			filter:  `u64 = s64`,
+			checkFn: testIndirectFields("u64", "s64"),
+		},
+		{
+			name:    "u64 field EQ indirect i64",
+			filter:  `u64 = i64`,
+			checkFn: testIndirectFields("u64", "i64"),
+		},
+		{
+			name:    "float field EQ indirect double",
+			filter:  `float = double`,
+			checkFn: testIndirectFields("float", "double"),
+		},
+		{
+			name:    "double field EQ indirect float",
+			filter:  `double = float`,
+			checkFn: testIndirectFields("double", "float"),
+		},
 	}
 	for _, tt := range tc {
 		t.Run(tt.name, func(t *testing.T) {
@@ -387,5 +500,34 @@ func BenchmarkInterpreter_Parse(b *testing.B) {
 			b.Fatal(err)
 		}
 		pf.Free()
+	}
+}
+
+func testIndirectFields(f1, f2 string) func(t *testing.T, x expr.FilterExpr) {
+	return func(t *testing.T, x expr.FilterExpr) {
+		ce, ok := x.(*expr.CompareExpr)
+		if !ok {
+			t.Fatalf("expected compare expression but got %T", x)
+		}
+		if ce.Comparator != expr.EQ {
+			t.Fatalf("expected comparator %s but got %s", expr.EQ, ce.Comparator)
+		}
+		left, ok := ce.Left.(*expr.FieldSelectorExpr)
+		if !ok {
+			t.Fatalf("expected value expression but got %T", ce.Left)
+		}
+
+		if left.Field != md.Fields().ByName(protoreflect.Name(f1)) {
+			t.Fatalf("expected field '%s' field but got %s", f1, left.Field)
+		}
+
+		right, ok := ce.Right.(*expr.FieldSelectorExpr)
+		if !ok {
+			t.Fatalf("expected value expression but got %T", ce.Right)
+		}
+
+		if right.Field != md.Fields().ByName(protoreflect.Name(f2)) {
+			t.Fatalf("expected field '%s' field but got %s", f2, right.Field)
+		}
 	}
 }
