@@ -258,6 +258,11 @@ func TestParse(t *testing.T) {
 			useStructs: true,
 			checkFn:    testMapStructComparable,
 		},
+		{
+			name:    "restriction with negative int on right",
+			src:     restrictionWithNegativeIntOnRight,
+			checkFn: testRestrictionWithNegativeIntOnRight,
+		},
 	}
 
 	for _, tc := range testCases {

@@ -1616,3 +1616,52 @@ func testRestrictionWithTimestampAndHas(t *testing.T, pf *ParsedFilter) {
 		t.Fatalf("expected 'a' got: %v", tl.Value)
 	}
 }
+
+const restrictionWithNegativeIntOnRight = "a = -1"
+
+func testRestrictionWithNegativeIntOnRight(t *testing.T, pf *ParsedFilter) {
+	if pf.Expr == nil {
+		t.Fatalf("expected parsed filter")
+	}
+	if len(pf.Expr.Sequences) != 1 {
+		t.Fatalf("expected one sequence")
+	}
+	seq := pf.Expr.Sequences[0]
+	rest := seqRestriction(t, seq)
+	member, ok := rest.Comparable.(*ast.MemberExpr)
+	if !ok {
+		t.Fatalf("expected member literal")
+	}
+	if member.Value == nil {
+		t.Fatal("expected member value")
+	}
+	tl, ok := member.Value.(*ast.TextLiteral)
+	if !ok {
+		t.Fatalf("expected text literal got: %v", member.Value)
+	}
+	if tl.Value != "a" {
+		t.Fatalf("expected 'a' got: %v", tl.Value)
+	}
+	if rest.Comparator == nil {
+		t.Fatal("expected comparator")
+	}
+	if rest.Comparator.Type != ast.EQ {
+		t.Fatalf("expected '=' got: %v", rest.Comparator)
+	}
+	if rest.Arg == nil {
+		t.Fatal("expected arg")
+	}
+
+	lit, ok := rest.Arg.(*ast.MemberExpr)
+	if !ok {
+		t.Fatalf("expected member expr got: %T", rest.Arg)
+	}
+
+	tl, ok = lit.Value.(*ast.TextLiteral)
+	if !ok {
+		t.Fatalf("expected text literal, got: %T", lit.Value)
+	}
+	if tl.Value != "-1" {
+		t.Fatalf("expected -1 got: %v", lit.Value)
+	}
+}

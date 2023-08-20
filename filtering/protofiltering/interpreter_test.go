@@ -178,9 +178,167 @@ func TestInterpreter_Parse(t *testing.T) {
 			err:    ErrAmbiguousField,
 		},
 		{
-			name: "timestamp field IN array direct",
-			filter: tstTimestampFieldInArrayDirect,
+			name:    "timestamp field IN array direct",
+			filter:  tstTimestampFieldInArrayDirect,
 			checkFn: testTimestampFieldInArrayDirect,
+		},
+		{
+			name:    "i32 field EQ direct",
+			filter:  tstI32FieldEQDirect,
+			checkFn: testI32FieldEQDirect,
+		},
+		{
+			name:    "i32 field GT direct",
+			filter:  tstI32FieldGTDirect,
+			checkFn: testI32FieldGTDirect,
+		},
+		{
+			name:    "i32 field EQ indirect",
+			filter:  tstI32FieldEQIndirect,
+			checkFn: testI32FieldEQIndirect,
+		},
+		{
+			name:   "i32 field EQ invalid string value",
+			filter: `i32 = "invalid"`,
+			isErr:  true,
+			err:    ErrInvalidValue,
+		},
+		{
+			name:   "i32 field EQ invalid text value",
+			filter: `i32 = some_text`,
+			isErr:  true,
+			err:    ErrInvalidValue,
+		},
+		{
+			name:    "i32 field IN array direct",
+			filter:  tstI32FieldInArrayDirect,
+			checkFn: testI32FieldInArrayDirect,
+		},
+		{
+			name:    "i32 field IN array indirect",
+			filter:  tstI32FieldInArrayIndirect,
+			checkFn: testI32FieldInArrayIndirect,
+		},
+		{
+			name:   "i32 field EQ ambiguous",
+			filter: `i32 = i32`,
+			isErr:  true,
+			err:    ErrAmbiguousField,
+		},
+		{
+			name:    "i32 field EQ negative direct",
+			filter:  tstI32FieldEQNegativeDirect,
+			checkFn: testI32FieldEQNegativeDirect,
+		},
+		{
+			name:    "i64 field EQ direct",
+			filter:  tstI64FieldEQDirect,
+			checkFn: testI64FieldEQDirect,
+		},
+		{
+			name:    "i64 field EQ indirect",
+			filter:  tstI64FieldEQIndirect,
+			checkFn: testI64FieldEQIndirect,
+		},
+		{
+			name:    "i64 field LT direct",
+			filter:  tstI64FieldLTDirect,
+			checkFn: testI64FieldLTDirect,
+		},
+		{
+			name:    "i64 field IN array direct",
+			filter:  tstI64FieldInArrayDirect,
+			checkFn: testI64FieldInArrayDirect,
+		},
+		{
+			name:    "i64 field IN array indirect",
+			filter:  tstI64FieldInArrayIndirect,
+			checkFn: testI64FieldInArrayIndirect,
+		},
+		{
+			name:    "i64 field EQ negative direct",
+			filter:  tstI64FieldEQNegativeDirect,
+			checkFn: testI64FieldEQNegativeDirect,
+		},
+		{
+			name:   "i64 field EQ ambiguous",
+			filter: `i64 = i64`,
+			isErr:  true,
+			err:    ErrAmbiguousField,
+		},
+		{
+			name:    "s32 field EQ direct",
+			filter:  tstS32FieldEQDirect,
+			checkFn: testS32FieldEQDirect,
+		},
+		{
+			name:    "s32 field EQ indirect",
+			filter:  tstS32FieldEQIndirect,
+			checkFn: testS32FieldEQIndirect,
+		},
+		{
+			name:    "s32 in array direct",
+			filter:  tstS32FieldInArrayDirect,
+			checkFn: testS32FieldInArrayDirect,
+		},
+		{
+			name:    "s32 in array indirect",
+			filter:  tstS32FieldInArrayIndirect,
+			checkFn: testS32FieldInArrayIndirect,
+		},
+		{
+			name:   "s32 field EQ ambiguous",
+			filter: `s32 = s32`,
+			isErr:  true,
+			err:    ErrAmbiguousField,
+		},
+		{
+			name:   "s32 field EQ invalid string value",
+			filter: `s32 = "invalid"`,
+			isErr:  true,
+			err:    ErrInvalidValue,
+		},
+		{
+			name:    "s32 field EQ negative direct",
+			filter:  tstS32FieldEQNegativeDirect,
+			checkFn: testS32FieldEQNegativeDirect,
+		},
+		{
+			name:    "s64 field EQ direct",
+			filter:  tstS64FieldEQDirect,
+			checkFn: testS64FieldEQDirect,
+		},
+		{
+			name:    "s64 field EQ indirect",
+			filter:  tstS64FieldEQIndirect,
+			checkFn: testS64FieldEQIndirect,
+		},
+		{
+			name:    "s64 field IN array direct",
+			filter:  tstS64FieldInArrayDirect,
+			checkFn: testS64FieldInArrayDirect,
+		},
+		{
+			name:    "s64 field IN array indirect",
+			filter:  tstS64FieldInArrayIndirect,
+			checkFn: testS64FieldInArrayIndirect,
+		},
+		{
+			name:   "s64 field EQ ambiguous",
+			filter: `s64 = s64`,
+			isErr:  true,
+			err:    ErrAmbiguousField,
+		},
+		{
+			name:   "s64 field EQ invalid string value",
+			filter: `s64 = "invalid"`,
+			isErr:  true,
+			err:    ErrInvalidValue,
+		},
+		{
+			name:    "s64 field EQ negative direct",
+			filter:  tstS64FieldEQNegativeDirect,
+			checkFn: testS64FieldEQNegativeDirect,
 		},
 	}
 	for _, tt := range tc {

@@ -71,3 +71,4 @@ func (*TextLiteral) isNameExpr()                {}
 func (*TextLiteral) isFieldExpr()               {}
 func (*TextLiteral) isValueExpr()               {}
 func (*TextLiteral) isAstExpr()                 {}
+func (*TextLiteral) isArgExpr()                 {}

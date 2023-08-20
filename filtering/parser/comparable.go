@@ -38,7 +38,7 @@ func putComparableExpr(e ast.ComparableExpr) {
 func (p *Parser) parseComparableExpr() (ast.ComparableExpr, error) {
 	pos, tok, lit := p.scanner.Scan()
 	switch tok {
-	case token.STRING, token.TEXT, token.TIMESTAMP:
+	case token.STRING, token.TEXT, token.TIMESTAMP, token.MINUS:
 	case token.BRACKET_OPEN:
 		// This is returned from scanner only when arrays are enabled.
 		return p.parseArrayExpr(pos)
@@ -57,12 +57,26 @@ func (p *Parser) parseComparableExpr() (ast.ComparableExpr, error) {
 		tok: tok,
 	})
 
+	wasMinus := tok == token.MINUS
 	var i int
 	for {
 		if i > 0 {
 			pos, tok, lit = p.scanner.Scan()
 			switch tok {
-			case token.TEXT, token.STRING, token.TIMESTAMP:
+			case token.TEXT, token.TIMESTAMP:
+				if wasMinus {
+					wasMinus = false
+				}
+			case token.STRING:
+				if wasMinus {
+					// Invalid syntax.
+					if p.err != nil {
+						p.err(pos, "comparable: a '-' character is not allowed before a STRING")
+					}
+					return nil, ErrInvalidFilterSyntax
+				}
+			case token.MINUS:
+				wasMinus = true
 			default:
 				if !tok.IsKeyword() {
 					if p.err != nil {
@@ -93,15 +107,15 @@ func (p *Parser) parseComparableExpr() (ast.ComparableExpr, error) {
 			return p.parseStructExpr(nameParts)
 		}
 
-		switch pt {
-		case token.PERIOD:
+		switch {
+		case pt == token.PERIOD || wasMinus:
 			i++
-		case token.LPAREN:
+		case pt == token.LPAREN:
 			// This is a function call.
 			return p.parseFuncCall(nameParts)
 		default:
 			// This is the end of the member expression.
-			return p.parseMemberLiteral(nameParts)
+			return p.parseMemberExpr(nameParts)
 		}
 	}
 }

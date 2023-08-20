@@ -76,8 +76,6 @@ func testSingleSequenceWithStringMember(t *testing.T, pf *ParsedFilter) {
 	}
 }
 
-
-
 const deepNestedStringMember = `"expr".'type_map'.1."type"`
 
 func testDeepNestedStringMember(t *testing.T, pf *ParsedFilter) {

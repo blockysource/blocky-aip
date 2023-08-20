@@ -230,7 +230,7 @@ func putMemberLiteral(e *ast.MemberExpr) {
 	memberLiteralPool.Put(e)
 }
 
-func getMemberLiteral() *ast.MemberExpr {
+func getMemberExpr() *ast.MemberExpr {
 	return memberLiteralPool.Get().(*ast.MemberExpr)
 }
 
