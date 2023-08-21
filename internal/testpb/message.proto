@@ -103,4 +103,25 @@ message Message {
   map<string, Message> map_str_msg = 61;
   map<string, google.protobuf.Timestamp> map_str_timestamp = 62;
   map<string, google.protobuf.Duration> map_str_duration = 63;
+
+  int32 i32_null = 64 [(blocky.api.query_opt) = NULLABLE];
+  int64 i64_null = 65 [(blocky.api.query_opt) = NULLABLE];
+  uint32 u32_null = 66 [(blocky.api.query_opt) = NULLABLE];
+  uint64 u64_null = 67 [(blocky.api.query_opt) = NULLABLE];
+  sint32 s32_null = 68 [(blocky.api.query_opt) = NULLABLE];
+  sint64 s64_null = 69 [(blocky.api.query_opt) = NULLABLE];
+  fixed32 f32_null = 70 [(blocky.api.query_opt) = NULLABLE];
+  fixed64 f64_null = 71 [(blocky.api.query_opt) = NULLABLE];
+  sfixed32 sf32_null = 72 [(blocky.api.query_opt) = NULLABLE];
+  sfixed64 sf64_null = 73 [(blocky.api.query_opt) = NULLABLE];
+  bool bool_null = 74 [(blocky.api.query_opt) = NULLABLE];
+  string str_null = 75 [(blocky.api.query_opt) = NULLABLE];
+  bytes bytes_null = 76 [(blocky.api.query_opt) = NULLABLE];
+  float float_null = 77 [(blocky.api.query_opt) = NULLABLE];
+  double double_null = 78 [(blocky.api.query_opt) = NULLABLE];
+  google.protobuf.Timestamp timestamp_null = 79 [(blocky.api.query_opt) = NULLABLE];
+  google.protobuf.Duration duration_null = 80 [(blocky.api.query_opt) = NULLABLE];
+  google.protobuf.Struct struct_null = 81 [(blocky.api.query_opt) = NULLABLE];
+  Enum enum_null = 82 [(blocky.api.query_opt) = NULLABLE];
+  Message msg_null = 83 [(blocky.api.query_opt) = NULLABLE];
 }

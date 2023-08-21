@@ -797,3 +797,179 @@ func testMapStructComparable(t *testing.T, pf *ParsedFilter) {
 		t.Fatalf("expected rbrace 8 got: %v", m.RBrace)
 	}
 }
+
+const tstUnnamedStruct = `{a: 1, b: 2}`
+
+func testUnnamedStruct(t *testing.T, pf *ParsedFilter) {
+	if pf.Expr == nil {
+		t.Fatalf("expected parsed filter")
+	}
+	if len(pf.Expr.Sequences) != 1 {
+		t.Fatalf("expected one sequence")
+	}
+	seq := pf.Expr.Sequences[0]
+
+	if len(seq.Factors) != 1 {
+		t.Fatalf("expected one factor")
+	}
+
+	factor := seq.Factors[0]
+	if len(factor.Terms) != 1 {
+		t.Fatalf("expected one term")
+	}
+
+	term := factor.Terms[0]
+	if term.UnaryOp != "" {
+		t.Fatalf("expected no unary op")
+	}
+
+	if term.Expr == nil {
+		t.Fatalf("expected expression")
+	}
+
+	expr, ok := term.Expr.(*ast.RestrictionExpr)
+	if !ok {
+		t.Fatalf("expected restriction expression")
+	}
+
+	if expr.Comparable == nil {
+		t.Fatalf("expected comparable")
+	}
+
+	m, ok := expr.Comparable.(*ast.StructExpr)
+	if !ok {
+		t.Fatalf("expected struct expression")
+	}
+
+	if len(m.Name) != 0 {
+		t.Fatalf("expected no name got: %v", len(m.Name))
+	}
+
+	if m.Position() != 0 {
+		t.Fatalf("expected position 0 got: %v", m.Position())
+	}
+
+	if m.LBrace != 0 {
+		t.Fatalf("expected lbrace 0 got: %v", m.LBrace)
+	}
+
+	if len(m.Elements) != 2 {
+		t.Fatalf("expected two field got: %v", len(m.Elements))
+	}
+
+	f1 := m.Elements[0]
+	if f1.Name == nil {
+		t.Fatal("expected field name")
+	}
+
+	if f1.Position() != 1 {
+		t.Fatalf("expected position 1 got: %v", f1.Position())
+	}
+
+	if len(f1.Name) != 1 {
+		t.Fatalf("expected one name got: %v", len(f1.Name))
+	}
+
+	tl, ok := f1.Name[0].(*ast.TextLiteral)
+	if !ok {
+		t.Fatalf("expected text literal got: %T", f1.Name)
+	}
+
+	if tl.Value != "a" {
+		t.Fatalf("expected 'a' got: %v", tl.Value)
+	}
+
+	if f1.Colon != 2 {
+		t.Fatalf("expected colon 2 got: %v", f1.Colon)
+	}
+
+	if f1.Value == nil {
+		t.Fatal("expected field value")
+	}
+
+	f1v, ok := f1.Value.(*ast.MemberExpr)
+	if !ok {
+		t.Fatalf("expected member expression got: %T", f1.Value)
+	}
+
+	if f1v.Position() != 4 {
+		t.Fatalf("expected position 4 got: %v", f1v.Position())
+	}
+
+	if f1v.Value == nil {
+		t.Fatal("expected member value")
+	}
+
+	tl, ok = f1v.Value.(*ast.TextLiteral)
+	if !ok {
+		t.Fatalf("expected text literal got: %T", f1v.Value)
+	}
+
+	if tl.Value != "1" {
+		t.Fatalf("expected '1' got: %v", tl.Value)
+	}
+
+	if len(f1v.Fields) != 0 {
+		t.Fatalf("expected no fields got: %v", len(f1v.Fields))
+	}
+
+	f2 := m.Elements[1]
+	if f2.Name == nil {
+		t.Fatal("expected field name")
+	}
+
+	if f2.Position() != 7 {
+		t.Fatalf("expected position 7 got: %v", f2.Position())
+	}
+
+	if len(f2.Name) != 1 {
+		t.Fatalf("expected one name got: %v", len(f2.Name))
+	}
+
+	tl, ok = f2.Name[0].(*ast.TextLiteral)
+	if !ok {
+		t.Fatalf("expected text literal got: %T", f2.Name)
+	}
+
+	if tl.Value != "b" {
+		t.Fatalf("expected 'b' got: %v", tl.Value)
+	}
+
+	if f2.Colon != 8 {
+		t.Fatalf("expected colon 8 got: %v", f2.Colon)
+	}
+
+	if f2.Value == nil {
+		t.Fatal("expected field value")
+	}
+
+	f2v, ok := f2.Value.(*ast.MemberExpr)
+	if !ok {
+		t.Fatalf("expected member expression got: %T", f2.Value)
+	}
+
+	if f2v.Position() != 10 {
+		t.Fatalf("expected position 10 got: %v", f2v.Position())
+	}
+
+	if f2v.Value == nil {
+		t.Fatal("expected member value")
+	}
+
+	tl, ok = f2v.Value.(*ast.TextLiteral)
+	if !ok {
+		t.Fatalf("expected text literal got: %T", f2v.Value)
+	}
+
+	if tl.Value != "2" {
+		t.Fatalf("expected '2' got: %v", tl.Value)
+	}
+
+	if len(f2v.Fields) != 0 {
+		t.Fatalf("expected no fields got: %v", len(f2v.Fields))
+	}
+
+	if m.RBrace != 11 {
+		t.Fatalf("expected rbrace 11 got: %v", m.RBrace)
+	}
+}

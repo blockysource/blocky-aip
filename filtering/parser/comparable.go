@@ -36,9 +36,25 @@ func putComparableExpr(e ast.ComparableExpr) {
 }
 
 func (p *Parser) parseComparableExpr() (ast.ComparableExpr, error) {
-	pos, tok, lit := p.scanner.Scan()
+	var (
+		pos token.Position
+		tok token.Token
+		lit string
+	)
+	p.scanner.Peek(func(p token.Position, t token.Token, l string) bool {
+		pos, tok, lit = p, t, l
+		switch tok {
+		case token.STRING, token.TEXT, token.TIMESTAMP, token.MINUS,
+			token.NOT, token.AND, token.OR, token.IN: // (keywords)
+			return true
+		}
+		return false
+	})
+
 	switch tok {
 	case token.STRING, token.TEXT, token.TIMESTAMP, token.MINUS:
+	case token.BRACE_OPEN:
+		return p.parseStructExpr(nil)
 	case token.BRACKET_OPEN:
 		// This is returned from scanner only when arrays are enabled.
 		return p.parseArrayExpr(pos)

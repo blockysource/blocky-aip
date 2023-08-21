@@ -453,6 +453,248 @@ func TestInterpreter_Parse(t *testing.T) {
 			filter:  `double = float`,
 			checkFn: testIndirectFields("double", "float"),
 		},
+		{
+			name:    "float field EQ direct",
+			filter:  tstFloatFieldEQDirect,
+			checkFn: testFloatFieldEQDirect,
+		},
+		{
+			name:    "float field EQ indirect",
+			filter:  tstFloatFieldEQIndirect,
+			checkFn: testFloatFieldEQIndirect,
+		},
+		{
+			name:   "float field EQ indirect ambiguous",
+			filter: `float = float`,
+			isErr:  true,
+			err:    ErrAmbiguousField,
+		},
+		{
+			name:   "float field EQ invalid value",
+			filter: `float = "invalid"`,
+			isErr:  true,
+			err:    ErrInvalidValue,
+		},
+		{
+			name:   "float field EQ invalid text value",
+			filter: `float = some_text`,
+			isErr:  true,
+			err:    ErrInvalidValue,
+		},
+		{
+			name:    "float field IN array direct",
+			filter:  tstFloatFieldINArrayDirect,
+			checkFn: testFloatFieldINArrayDirect,
+		},
+		{
+			name:    "float field IN array indirect",
+			filter:  tstFloatFieldINArrayIndirect,
+			checkFn: testFloatFieldINArrayIndirect,
+		},
+		{
+			name:    "float field EQ negative direct",
+			filter:  tstFloadFieldEQNegative,
+			checkFn: testFloadFieldEQNegative,
+		},
+		{
+			name:    "double field EQ direct",
+			filter:  tstDoubleFieldEQDirect,
+			checkFn: testDoubleFieldEQDirect,
+		},
+		{
+			name:    "double field EQ indirect",
+			filter:  tstDoubleFieldEQIndirect,
+			checkFn: testDoubleFieldEQIndirect,
+		},
+		{
+			name:   "double field EQ invalid value",
+			filter: `double = "invalid"`,
+			isErr:  true,
+			err:    ErrInvalidValue,
+		},
+		{
+			name:   "double field EQ invalid text value",
+			filter: `double = some_text`,
+			isErr:  true,
+			err:    ErrInvalidValue,
+		},
+		{
+			name:    "double field IN array direct",
+			filter:  tstDoubleFieldINArrayDirect,
+			checkFn: testDoubleFieldINArrayDirect,
+		},
+		{
+			name:    "double field IN array indirect",
+			filter:  tstDoubleFieldINArrayIndirect,
+			checkFn: testDoubleFieldINArrayIndirect,
+		},
+		{
+			name:    "double field EQ negative direct",
+			filter:  tstDoubleFieldEQNegative,
+			checkFn: testDoubleFieldEQNegative,
+		},
+		{
+			name:    "enum field EQ direct",
+			filter:  tstEnumFieldEQDirect,
+			checkFn: testEnumFieldEQDirect,
+		},
+		{
+			name:    "enum field EQ indirect",
+			filter:  tstEnumFieldEQIndirect,
+			checkFn: testEnumFieldEQIndirect,
+		},
+		{
+			name:   "enum field EQ invalid value",
+			filter: `enum = "invalid"`,
+			isErr:  true,
+			err:    ErrInvalidValue,
+		},
+		{
+			name:   "enum field EQ invalid text value",
+			filter: `enum = some_text`,
+			isErr:  true,
+			err:    ErrInvalidValue,
+		},
+		{
+			name:    "enum field IN array direct",
+			filter:  tstEnumFieldInArrayDirect,
+			checkFn: testEnumFieldInArrayDirect,
+		},
+		{
+			name:    "enum field IN array indirect",
+			filter:  tstEnumFieldInArrayIndirect,
+			checkFn: testEnumFieldInArrayIndirect,
+		},
+		{
+			name:   "enum field ambiguous",
+			filter: `enum = enum`,
+			isErr:  true,
+			err:    ErrAmbiguousField,
+		},
+		{
+			name:    "bool field EQ direct true",
+			filter:  tstBoolFieldEQDirectTrue,
+			checkFn: testBoolFieldEQDirectTrue,
+		},
+		{
+			name:    "bool field EQ direct false",
+			filter:  tstBoolFieldEQDirectFalse,
+			checkFn: testBoolFieldEQDirectFalse,
+		},
+		{
+			name:   "bool field EQ invalid value",
+			filter: `bool = "invalid"`,
+			isErr:  true,
+			err:    ErrInvalidValue,
+		},
+		{
+			name:   "bool field EQ invalid text value",
+			filter: `bool = 0`,
+			isErr:  true,
+			err:    ErrInvalidValue,
+		},
+		{
+			name:    "bool field EQ indirect",
+			filter:  tstBoolFieldEQIndirect,
+			checkFn: testBoolFieldEQIndirect,
+		},
+		{
+			name:    "structpb field EQ direct string",
+			filter:  tstStructPbFieldEQDirectString,
+			checkFn: testStructPbFieldEQDirectString,
+		},
+		{
+			name:    "structpb field EQ direct message",
+			filter:  tstStructPbFieldEQDirectMessage,
+			checkFn: testStructPbFieldEQDirectMessage,
+		},
+		{
+			name:    "message field EQ direct",
+			filter:  tstMsgFieldEQDirect,
+			checkFn: testMsgFieldEQDirect,
+		},
+		{
+			name:    "message field EQ indirect",
+			filter:  tstMsgFieldEQIndirect,
+			checkFn: testMsgFieldEQIndirect,
+		},
+		{
+			name:    "message field EQ direct unnamed",
+			filter:  tstMsgFieldEQDirectUnnamed,
+			checkFn: testMsgFieldEQDirectUnnamed,
+		},
+		{
+			name:   "message field EQ invalid struct name",
+			filter: `sub = invalid.Name{}`,
+			isErr:  true,
+			err:    ErrInvalidValue,
+		},
+		{
+			name:   "message field EQ invalid struct field",
+			filter: `sub = {invalid: 1}`,
+			isErr:  true,
+			err:    ErrInvalidValue,
+		},
+		{
+			name:   "message field EQ invalid string literal",
+			filter: `sub = "invalid"`,
+			isErr:  true,
+			err:    ErrInvalidValue,
+		},
+		{
+			name:   "message field EQ invalid text literal",
+			filter: `sub = some_text`,
+			isErr:  true,
+			err:    ErrInvalidValue,
+		},
+		{
+			name:   "string field EQ direct forbidden filtering",
+			filter: `no_filter = "test"`,
+			isErr:  true,
+			err:    ErrInvalidValue,
+		},
+		{
+			name:   "message field EQ direct forbidden filtering",
+			filter: `no_filter_msg = {}`,
+			isErr:  true,
+			err:    ErrInvalidValue,
+		},
+		{
+			name:   "message field EQ sub selector forbidden filtering",
+			filter: `no_filter_msg.i64 = 1`,
+			isErr:  true,
+			err:    ErrInvalidValue,
+		},
+		{
+			name:    "i32_complexity field EQ direct",
+			filter:  tstI32ComplexityEQDirect,
+			checkFn: testI32ComplexityEQDirect,
+		},
+		{
+			name:    "multiple expressions with AND",
+			filter:  tstMultipleExpressions,
+			checkFn: testMultipleExpressions,
+		},
+		{
+			name:    "term with NOT keyword",
+			filter:  tstTermWithNOTKeyword,
+			checkFn: testTermWithNOTKeyword,
+		},
+		{
+			name:    "term with NOT keyword and parentheses",
+			filter:  tstTermWithNOTKeywordAndParentheses,
+			checkFn: testTermWithNOTKeywordAndParentheses,
+		},
+		{
+			name:    "factor with multiple ors",
+			filter:  tstFactorWithMultipleORs,
+			checkFn: testFactorWithMultipleORs,
+		},
+		{
+			name:    "complex expression",
+			filter:  tstComplexExpression,
+			checkFn: testComplexExpression,
+		},
 	}
 	for _, tt := range tc {
 		t.Run(tt.name, func(t *testing.T) {
@@ -473,6 +715,10 @@ func TestInterpreter_Parse(t *testing.T) {
 				if err != nil {
 					t.Fatalf("expected no error but got %s", err)
 				}
+				if testing.Verbose() {
+					t.Logf("Query: '%s' complexity: %d", tt.filter, x.Complexity())
+				}
+
 				defer x.Free()
 				tt.checkFn(t, x)
 			}

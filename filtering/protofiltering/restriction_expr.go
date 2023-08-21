@@ -73,6 +73,16 @@ func (b *Interpreter) HandleRestrictionExpr(ctx *ParseContext, x *ast.Restrictio
 			return res, ErrInternal
 		}
 
+		if IsFieldFilteringForbidden(field.Field) {
+			var res TryParseValueResult
+			if ctx.ErrHandler != nil {
+				res.ErrPos = xt.Position()
+				res.ErrMsg = fmt.Sprintf("field %s is not filterable", field.Field.FullName())
+			}
+			left.Free()
+			return res, ErrInvalidValue
+		}
+
 		// If the field is a map key and comparator is HAS, check if the right side is a wildcard TEXT literal.
 		if cmp == expr.HAS && mk != nil {
 			if me, ok := x.Arg.(*ast.MemberExpr); ok {

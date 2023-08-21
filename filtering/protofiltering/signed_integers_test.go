@@ -749,3 +749,35 @@ func testS64FieldEQNegativeDirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value -42 but got %d", right.Value)
 	}
 }
+
+const tstI32ComplexityEQDirect = `i32_complexity = 42`
+
+func testI32ComplexityEQDirect(t *testing.T, x expr.FilterExpr) {
+	ce, ok := x.(*expr.CompareExpr)
+	if !ok {
+		t.Fatalf("Expected compare expression but got %T", x)
+	}
+	if ce.Comparator != expr.EQ {
+		t.Fatalf("Expected comparator %s but got %s", expr.EQ, ce.Comparator)
+	}
+	left, ok := ce.Left.(*expr.FieldSelectorExpr)
+	if !ok {
+		t.Fatalf("Expected value expression but got %T", ce.Left)
+	}
+
+	if left.Field != md.Fields().ByName("i32_complexity") {
+		t.Fatalf("Expected field 'i32_complexity' field but got %s", left.Field)
+	}
+	if left.Complexity() != 44 {
+		t.Fatalf("Expected complexity 44 but got %d", left.Complexity())
+	}
+
+	right, ok := ce.Right.(*expr.ValueExpr)
+	if !ok {
+		t.Fatalf("Expected value expression but got %T", ce.Right)
+	}
+
+	if right.Value != int64(42) {
+		t.Fatalf("Expected value 42 but got %d", right.Value)
+	}
+}

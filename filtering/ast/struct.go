@@ -17,6 +17,8 @@ package ast
 import (
 	"strings"
 
+	"google.golang.org/protobuf/reflect/protoreflect"
+
 	"github.com/blockysource/blocky-aip/filtering/token"
 )
 
@@ -39,6 +41,22 @@ type StructExpr struct {
 
 	// RBrace is the position of the right brace.
 	RBrace token.Position
+}
+
+// FullName returns a protoreflect.FullName equivalent of the struct expression.
+// I.e.: "google.protobuf.Timestamp{}" -> "google.protobuf.Timestamp".
+func (e *StructExpr) FullName() protoreflect.FullName {
+	if len(e.Name) == 0 {
+		return ""
+	}
+	var sb strings.Builder
+	for i, name := range e.Name {
+		if i > 0 {
+			sb.WriteString(".")
+		}
+		sb.WriteString(name.String())
+	}
+	return protoreflect.FullName(sb.String())
 }
 
 // IsMap returns true if the struct expression is a map.

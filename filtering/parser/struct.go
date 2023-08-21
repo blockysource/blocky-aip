@@ -82,7 +82,9 @@ func putStructFieldExpr(expr *ast.StructFieldExpr) {
 func (p *Parser) parseStructExpr(nameParts []namePart) (*ast.StructExpr, error) {
 	st := getStructExpr()
 
-	defer putNameParts(nameParts)
+	if len(nameParts) > 0 {
+		defer putNameParts(nameParts)
+	}
 
 	p.scanner.SkipWhitespace()
 

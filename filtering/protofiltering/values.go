@@ -16,18 +16,12 @@ package protofiltering
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
-	"strconv"
 	"strings"
-	"time"
 
 	"google.golang.org/genproto/googleapis/api/annotations"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/types/dynamicpb"
-	"google.golang.org/protobuf/types/known/durationpb"
-	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/blockysource/blocky-aip/expr"
 	"github.com/blockysource/blocky-aip/filtering/ast"
@@ -75,6 +69,61 @@ type TryParseValueResult struct {
 	// IsIndirect is a flag that indicates whether the value is indirect.
 	// An indirect value means it depends on the field selector.
 	IsIndirect bool
+}
+
+// IsFieldNullable checks if the input field is nullable.
+func IsFieldNullable(field protoreflect.FieldDescriptor) bool {
+	// At first try blockaypi.E_Nullable extension, if not found, then try google api.OPTIONAL extension.
+	// If not found, then return false.
+	queryOpts, ok := proto.GetExtension(field.Options(), blockyannotations.E_QueryOpt).([]blockyannotations.FieldQueryOption)
+	if ok {
+		for _, qo := range queryOpts {
+			if qo == blockyannotations.FieldQueryOption_NULLABLE {
+				return true
+			}
+		}
+	}
+
+	fb, ok := proto.GetExtension(field.Options(), annotations.E_FieldBehavior).([]annotations.FieldBehavior)
+	if !ok {
+		return false
+	}
+
+	if field.Kind() == protoreflect.MessageKind {
+		for _, b := range fb {
+			if b == annotations.FieldBehavior_REQUIRED {
+				return false
+			}
+		}
+		return true
+	}
+	for _, b := range fb {
+		switch b {
+		case annotations.FieldBehavior_REQUIRED, annotations.FieldBehavior_IMMUTABLE:
+			return false
+		case annotations.FieldBehavior_OPTIONAL:
+			return true
+		}
+	}
+	return false
+}
+
+// GetFieldComplexity extracts the complexity of a field out of the given field descriptor.
+func GetFieldComplexity(fd FieldDescriptor) int64 {
+	switch fdt := fd.(type) {
+	case *FunctionCallArgumentDeclaration:
+		return 1
+	case *FunctionCallReturningDeclaration:
+		return 1
+	case protoreflect.FieldDescriptor:
+		c, ok := proto.GetExtension(fdt.Options(), blockyannotations.E_Complexity).(int64)
+		if ok {
+			return c
+		}
+		return 1
+	default:
+		return 1
+	}
 }
 
 // TryParseValue tries to parse a value expression.
@@ -153,7 +202,7 @@ func (b *Interpreter) TryParseMessageField(ctx *ParseContext, in TryParseValueIn
 	case "google.protobuf.Duration":
 		return b.TryParseDurationField(ctx, in)
 	case "google.protobuf.Struct":
-		return b.TryParseWellKnownStructField(ctx, in)
+		return b.TryParseStructPb(ctx, in)
 	default:
 		return b.TryParseMessageStructField(ctx, in)
 	}
@@ -298,694 +347,6 @@ func (b *Interpreter) TryParseMapField(ctx *ParseContext, in TryParseValueInput)
 	}
 }
 
-func (b *Interpreter) TryParseMessageStructField(ctx *ParseContext, in TryParseValueInput) (TryParseValueResult, error) {
-	if in.Field.Message() == nil {
-		// This is invalid AST node, return an error.
-		if ctx.ErrHandler != nil {
-			return TryParseValueResult{ErrPos: in.Value.Position(), ErrMsg: "invalid AST node"}, ErrInvalidAST
-		}
-		return TryParseValueResult{}, ErrInvalidAST
-	}
-
-	// A struct field could either be null (if nullable) or a string literal of JSON format.
-	if len(in.Args) > 0 {
-		if ctx.ErrHandler != nil {
-			return TryParseValueResult{ErrPos: in.Value.Position(), ErrMsg: fmt.Sprintf("field is of %q type, but provided value is not a valid %q value: '%s'", in.Field.Kind(), in.Field.Kind(), joinedName(in.Value, in.Args...))}, ErrInvalidValue
-		}
-		return TryParseValueResult{}, ErrInvalidValue
-	}
-
-	switch ft := in.Value.(type) {
-	case *ast.StringLiteral:
-		// String literal cannot be a struct | nullable value.
-		if ctx.ErrHandler != nil {
-			return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field cannot accept string literal as a value")}, ErrInvalidValue
-		}
-		return TryParseValueResult{}, ErrInvalidValue
-	case *ast.TextLiteral:
-		if in.IsNullable && ft.Value == "null" {
-			ve := expr.AcquireValueExpr()
-			ve.Value = nil
-			return TryParseValueResult{Expr: ve}, nil
-		}
-
-		// Text literal cannot be a valid struct value.
-		if ctx.ErrHandler != nil {
-			return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field cannot accept text literal as a value")}, ErrInvalidValue
-		}
-		return TryParseValueResult{}, ErrInvalidValue
-	case *ast.StructExpr:
-		// A struct can be parsed as a struct value, by setting a struct field expressions.
-		desc := in.Field.Message()
-		msg := dynamicpb.NewMessage(desc)
-
-		for _, field := range ft.Elements {
-			if len(field.Name) != 1 {
-				var res TryParseValueResult
-				// This is a map not a struct.
-				if ctx.ErrHandler != nil {
-					res.ErrPos = field.Position()
-					res.ErrMsg = fmt.Sprintf("field is of %q type, but provided value is not a valid %q value: '%s'", in.Field.Kind(), in.Field.Kind(), joinedName(field.Name[0]))
-				}
-				return res, ErrInvalidValue
-			}
-			df := desc.Fields().ByName(protoreflect.Name(field.Name[0].UnquotedString()))
-			if df == nil {
-				// Field is not found within the message descriptor.
-				if ctx.ErrHandler != nil {
-					return TryParseValueResult{ErrPos: field.Position(), ErrMsg: fmt.Sprintf("field is not found within the message descriptor: %s", field.Name[0].UnquotedString())}, ErrInvalidValue
-				}
-				return TryParseValueResult{}, ErrInvalidValue
-			}
-
-			// Check if the field is already set.
-			if msg.Has(df) {
-				// The field was duplicated.
-				if ctx.ErrHandler != nil {
-					return TryParseValueResult{ErrPos: field.Position(), ErrMsg: fmt.Sprintf("field %s is duplicated", field.Name[0].UnquotedString())}, ErrInvalidValue
-				}
-				return TryParseValueResult{}, ErrInvalidValue
-			}
-
-			// Try parsing the field value.
-			v, err := b.TryParseValue(ctx, TryParseValueInput{
-				Field:         df,
-				AllowIndirect: in.AllowIndirect,
-				IsNullable:    IsFieldNullable(df),
-				Value:         field.Value,
-			})
-			if err != nil {
-				return v, err
-			}
-
-			if v.Expr == nil {
-				// This is internal error, return an error.
-				if ctx.ErrHandler != nil {
-					return TryParseValueResult{ErrPos: field.Position(), ErrMsg: "internal error: parsed expression is nil"}, ErrInternal
-				}
-				return TryParseValueResult{}, ErrInternal
-			}
-
-			switch vt := v.Expr.(type) {
-			case *expr.ValueExpr:
-				if df.Cardinality() == protoreflect.Repeated {
-					// This is a repeated field, but we have a single value.
-					// This is a syntax error.
-					var res TryParseValueResult
-					if ctx.ErrHandler != nil {
-						res.ErrPos = field.Position()
-						res.ErrMsg = fmt.Sprintf("field is of %q type, but provided value is not a valid value: '%s'", df.Kind(), joinedName(field.Name[0]))
-					}
-					vt.Free()
-					return res, ErrInvalidValue
-				}
-
-				var (
-					pv  protoreflect.Value
-					res TryParseValueResult
-				)
-
-				pv, res, err = b.exprValueToProto(ctx, df, vt, field)
-				if err != nil {
-					vt.Free()
-					return res, err
-				}
-
-				if pv.IsValid() {
-					// Set the value and free the field expression.
-					msg.Set(df, pv)
-				}
-				vt.Free()
-			case *expr.ArrayExpr:
-				if df.Cardinality() != protoreflect.Repeated {
-					// This is a repeated field, but we have a single value.
-					// This is a syntax error.
-					vt.Free()
-					var res TryParseValueResult
-					if ctx.ErrHandler != nil {
-						res.ErrPos = field.Position()
-						res.ErrMsg = fmt.Sprintf("field is of %q type, but provided value is not a valid value: '%s'", df.Kind(), field.Name)
-					}
-					return res, ErrInvalidValue
-				}
-
-				ls := msg.Mutable(df).List()
-
-				for _, elem := range vt.Elements {
-					switch et := elem.(type) {
-					case *expr.ValueExpr:
-						var (
-							pv  protoreflect.Value
-							res TryParseValueResult
-						)
-						pv, res, err = b.exprValueToProto(ctx, df, et, field)
-						if err != nil {
-							vt.Free()
-							return res, err
-						}
-
-						if pv.IsValid() {
-							ls.Append(pv)
-						}
-					default:
-						// This is internal error, return an error.
-						vt.Free()
-						if ctx.ErrHandler != nil {
-							return TryParseValueResult{ErrPos: field.Position(), ErrMsg: fmt.Sprintf("internal error: unknown value type: %T", et)}, ErrInternal
-						}
-						return TryParseValueResult{}, ErrInternal
-					}
-				}
-				vt.Free()
-			default:
-				// This is internal error, return an error.
-				vt.Free()
-				if ctx.ErrHandler != nil {
-					return TryParseValueResult{ErrPos: field.Position(), ErrMsg: fmt.Sprintf("internal error: unknown expression type: %T to parse a Message", vt)}, ErrInternal
-				}
-				return TryParseValueResult{}, ErrInternal
-			}
-		}
-
-		// Create a value expression with a dynamic message value.
-		ve := expr.AcquireValueExpr()
-		ve.Value = msg
-		return TryParseValueResult{Expr: ve}, nil
-	case *ast.ArrayExpr:
-		// An array can be parsed as a repeated field value.
-		ve := expr.AcquireArrayExpr()
-		for _, elem := range ft.Elements {
-			// Try parsing each element as a message value.
-			res, err := b.TryParseValue(ctx, TryParseValueInput{
-				Field:         in.Field,
-				AllowIndirect: in.AllowIndirect,
-				IsNullable:    in.IsNullable,
-				Value:         elem,
-			})
-			if err != nil {
-				return res, err
-			}
-
-			if res.Expr == nil {
-				// This is internal error, return an error.
-				if ctx.ErrHandler != nil {
-					return TryParseValueResult{ErrPos: elem.Position(), ErrMsg: "internal error: parsed expression is nil"}, ErrInternal
-				}
-				return TryParseValueResult{}, ErrInternal
-			}
-
-			ve.Elements = append(ve.Elements, res.Expr)
-		}
-		return TryParseValueResult{Expr: ve}, nil
-	default:
-		// This is internal error, return an error.
-		if ctx.ErrHandler != nil {
-			return TryParseValueResult{ErrPos: in.Value.Position(), ErrMsg: fmt.Sprintf("internal error: unknown value type: %T to parse a Message", ft)}, ErrInternal
-		}
-		return TryParseValueResult{}, ErrInternal
-	}
-}
-
-func (b *Interpreter) exprValueToProto(ctx *ParseContext, df protoreflect.FieldDescriptor, vt *expr.ValueExpr, field *ast.StructFieldExpr) (protoreflect.Value, TryParseValueResult, error) {
-	var pv protoreflect.Value
-	switch et := vt.Value.(type) {
-	case time.Time:
-		if df.Kind() != protoreflect.MessageKind {
-			// This is internal error, return an error.
-			if ctx.ErrHandler != nil {
-				return protoreflect.Value{}, TryParseValueResult{ErrPos: field.Position(), ErrMsg: "internal error: field is not a message kind"}, ErrInternal
-			}
-			return protoreflect.Value{}, TryParseValueResult{}, ErrInternal
-		}
-		if df.Message().FullName() != "google.protobuf.Timestamp" {
-			// This is internal error, return an error.
-			if ctx.ErrHandler != nil {
-				return protoreflect.Value{}, TryParseValueResult{ErrPos: field.Position(), ErrMsg: "internal error: field is not a timestamp message"}, ErrInternal
-			}
-			return protoreflect.Value{}, TryParseValueResult{}, ErrInternal
-		}
-
-		pv = protoreflect.ValueOfMessage(timestamppb.New(et).ProtoReflect())
-	case time.Duration:
-		if df.Kind() != protoreflect.MessageKind {
-			// This is internal error, return an error.
-			if ctx.ErrHandler != nil {
-				return protoreflect.Value{}, TryParseValueResult{ErrPos: field.Position(), ErrMsg: "internal error: field is not a message kind"}, ErrInternal
-			}
-			return protoreflect.Value{}, TryParseValueResult{}, ErrInternal
-		}
-		if df.Message().FullName() != "google.protobuf.Duration" {
-			// This is internal error, return an error.
-			if ctx.ErrHandler != nil {
-				return protoreflect.Value{}, TryParseValueResult{ErrPos: field.Position(), ErrMsg: "internal error: field is not a duration message"}, ErrInternal
-			}
-			return protoreflect.Value{}, TryParseValueResult{}, ErrInternal
-		}
-		pv = protoreflect.ValueOfMessage(durationpb.New(et).ProtoReflect())
-	case int64:
-		switch df.Kind() {
-		case protoreflect.Int32Kind, protoreflect.Sint32Kind, protoreflect.Sfixed32Kind:
-			pv = protoreflect.ValueOfInt32(int32(et))
-		case protoreflect.Int64Kind, protoreflect.Sint64Kind, protoreflect.Sfixed64Kind:
-			pv = protoreflect.ValueOfInt64(et)
-		default:
-			// This is internal error, return an error.
-			if ctx.ErrHandler != nil {
-				return protoreflect.Value{}, TryParseValueResult{ErrPos: field.Position(), ErrMsg: "internal error: field is not an integer kind"}, ErrInternal
-			}
-			return protoreflect.Value{}, TryParseValueResult{}, ErrInternal
-		}
-	case uint64:
-		switch df.Kind() {
-		case protoreflect.Uint32Kind, protoreflect.Fixed32Kind:
-			pv = protoreflect.ValueOfUint32(uint32(et))
-		case protoreflect.Uint64Kind, protoreflect.Fixed64Kind:
-			pv = protoreflect.ValueOfUint64(et)
-		default:
-			// This is internal error, return an error.
-			if ctx.ErrHandler != nil {
-				return protoreflect.Value{}, TryParseValueResult{ErrPos: field.Position(), ErrMsg: "internal error: field is not an unsigned integer kind"}, ErrInternal
-			}
-			return protoreflect.Value{}, TryParseValueResult{}, ErrInternal
-		}
-	case float64:
-		switch df.Kind() {
-		case protoreflect.DoubleKind:
-			pv = protoreflect.ValueOfFloat64(et)
-		case protoreflect.FloatKind:
-			pv = protoreflect.ValueOfFloat32(float32(et))
-		default:
-			// This is internal error, return an error.
-			if ctx.ErrHandler != nil {
-				return protoreflect.Value{}, TryParseValueResult{ErrPos: field.Position(), ErrMsg: "internal error: field is not a float kind"}, ErrInternal
-			}
-			return protoreflect.Value{}, TryParseValueResult{}, ErrInternal
-		}
-	case bool:
-		if df.Kind() != protoreflect.BoolKind {
-			// This is internal error, return an error.
-			if ctx.ErrHandler != nil {
-				return protoreflect.Value{}, TryParseValueResult{ErrPos: field.Position(), ErrMsg: "internal error: field is not a bool kind"}, ErrInternal
-			}
-			return protoreflect.Value{}, TryParseValueResult{}, ErrInternal
-		}
-		pv = protoreflect.ValueOfBool(et)
-	case string:
-		switch df.Kind() {
-		case protoreflect.StringKind:
-			pv = protoreflect.ValueOfString(et)
-		case protoreflect.BytesKind:
-			pv = protoreflect.ValueOfBytes([]byte(et))
-		default:
-			// This is internal error, return an error.
-			if ctx.ErrHandler != nil {
-				return protoreflect.Value{}, TryParseValueResult{ErrPos: field.Position(), ErrMsg: "internal error: field is not a string kind"}, ErrInternal
-			}
-			return protoreflect.Value{}, TryParseValueResult{}, ErrInternal
-		}
-	case []byte:
-		switch df.Kind() {
-		case protoreflect.StringKind:
-			pv = protoreflect.ValueOfString(string(et))
-		case protoreflect.BytesKind:
-			pv = protoreflect.ValueOfBytes(et)
-		default:
-			// This is internal error, return an error.
-			if ctx.ErrHandler != nil {
-				return protoreflect.Value{}, TryParseValueResult{ErrPos: field.Position(), ErrMsg: "internal error: field is not a bytes kind"}, ErrInternal
-			}
-			return protoreflect.Value{}, TryParseValueResult{}, ErrInternal
-		}
-	case protoreflect.EnumNumber:
-		if df.Kind() != protoreflect.EnumKind {
-			// This is internal error, return an error.
-			if ctx.ErrHandler != nil {
-				return protoreflect.Value{}, TryParseValueResult{ErrPos: field.Position(), ErrMsg: "internal error: field is not an enum kind"}, ErrInternal
-			}
-			return protoreflect.Value{}, TryParseValueResult{}, ErrInternal
-		}
-		pv = protoreflect.ValueOfEnum(et)
-		if df.Enum().Values().ByNumber(et) == nil {
-			// This is internal error, return an error.
-			if ctx.ErrHandler != nil {
-				return protoreflect.Value{}, TryParseValueResult{ErrPos: field.Position(), ErrMsg: fmt.Sprintf("internal error: enum value %d is not found", et)}, ErrInternal
-			}
-			return protoreflect.Value{}, TryParseValueResult{}, ErrInternal
-		}
-	case proto.Message:
-		// This works for both protoreflect.Message and structpb.Value.
-		if df.Kind() != protoreflect.MessageKind {
-			// This is internal error, return an error.
-			if ctx.ErrHandler != nil {
-				return protoreflect.Value{}, TryParseValueResult{ErrPos: field.Position(), ErrMsg: "internal error: field is not a message kind"}, ErrInternal
-			}
-			return protoreflect.Value{}, TryParseValueResult{}, ErrInternal
-		}
-
-		if df.Message().FullName() != et.ProtoReflect().Descriptor().FullName() {
-			// This is internal error, return an error.
-			if ctx.ErrHandler != nil {
-				return protoreflect.Value{}, TryParseValueResult{ErrPos: field.Position(), ErrMsg: fmt.Sprintf("internal error: message type %q is not expected", et.ProtoReflect().Descriptor().FullName())}, ErrInternal
-			}
-			return protoreflect.Value{}, TryParseValueResult{}, ErrInternal
-		}
-
-		pv = protoreflect.ValueOfMessage(et.ProtoReflect())
-	case nil:
-		if df.Cardinality() == protoreflect.Repeated {
-			// This is a repeated field, but we have a single value.
-			// This is a syntax error.
-			var res TryParseValueResult
-			if ctx.ErrHandler != nil {
-				res.ErrPos = field.Position()
-				res.ErrMsg = fmt.Sprintf("field is of %q type, but provided value is not a valid value: '%s'", df.Kind(), field.Name)
-			}
-			return protoreflect.Value{}, res, ErrInvalidValue
-		}
-	default:
-		// This is internal error, return an error.
-		if ctx.ErrHandler != nil {
-			return protoreflect.Value{}, TryParseValueResult{ErrPos: field.Position(), ErrMsg: fmt.Sprintf("internal error: unknown value type: %T", et)}, ErrInternal
-		}
-		return protoreflect.Value{}, TryParseValueResult{}, ErrInternal
-	}
-	return pv, TryParseValueResult{}, nil
-}
-
-// TryParseWellKnownStructField tries to parse a well-known structpb.Value field.
-func (b *Interpreter) TryParseWellKnownStructField(ctx *ParseContext, in TryParseValueInput) (TryParseValueResult, error) {
-	// A struct field could either be null (if nullable) or a string literal of JSON format.
-	if len(in.Args) > 0 {
-		if ctx.ErrHandler != nil {
-			return TryParseValueResult{ErrPos: in.Value.Position(), ErrMsg: fmt.Sprintf("field is of %q type, but provided value is not a valid %q value: '%s'", in.Field.Kind(), in.Field.Kind(), joinedName(in.Value, in.Args...))}, ErrInvalidValue
-		}
-		return TryParseValueResult{}, ErrInvalidValue
-	}
-
-	switch ft := in.Value.(type) {
-	case *ast.StringLiteral:
-		// String literal can be a nullable value.
-		// Check if the value is a valid JSON string.
-		bv := json.RawMessage(ft.Value)
-
-		if json.Valid(bv) {
-			ve := expr.AcquireValueExpr()
-			ve.Value = bv
-			return TryParseValueResult{Expr: ve}, nil
-		}
-
-		if ctx.ErrHandler != nil {
-			return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field is of %q type, but provided value is not valid: '%s'", in.Field.Kind(), ft.Value)}, ErrInvalidValue
-		}
-		return TryParseValueResult{}, ErrInvalidValue
-	case *ast.TextLiteral:
-		if in.IsNullable && ft.Value == "null" {
-			ve := expr.AcquireValueExpr()
-			ve.Value = nil
-			return TryParseValueResult{Expr: ve}, nil
-		}
-
-		// Text literal cannot be a struct value.
-		if ctx.ErrHandler != nil {
-			return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field cannot accept text literal as a value")}, ErrInvalidValue
-		}
-		return TryParseValueResult{}, ErrInvalidValue
-	case *ast.ArrayExpr:
-		// An array can be parsed as a repeated field value.
-		ve := expr.AcquireArrayExpr()
-		for _, elem := range ft.Elements {
-			// Try parsing each element as a struct value.
-			res, err := b.TryParseValue(ctx, TryParseValueInput{
-				Field:         in.Field,
-				AllowIndirect: in.AllowIndirect,
-				IsNullable:    in.IsNullable,
-				Value:         elem,
-			})
-			if err != nil {
-				return res, err
-			}
-
-			if res.Expr == nil {
-				// This is internal error, return an error.
-				if ctx.ErrHandler != nil {
-					return TryParseValueResult{ErrPos: elem.Position(), ErrMsg: "internal error: parsed expression is nil"}, ErrInternal
-				}
-				return TryParseValueResult{}, ErrInternal
-			}
-
-			if !in.AllowIndirect {
-				switch res.Expr.(type) {
-				case *expr.FunctionCallExpr, *expr.FieldSelectorExpr:
-					res.Expr.Free()
-					if ctx.ErrHandler != nil {
-						return TryParseValueResult{ErrPos: elem.Position(), ErrMsg: fmt.Sprintf("field is of %q type, but provided value is not valid: '%s'", in.Field.Kind(), joinedName(elem))}, ErrInvalidValue
-					}
-					return TryParseValueResult{}, ErrInvalidValue
-				}
-			}
-
-			ve.Elements = append(ve.Elements, res.Expr)
-		}
-		return TryParseValueResult{Expr: ve}, nil
-	case *ast.StructExpr:
-		return b.TryParseMessageStructField(ctx, in)
-	default:
-		// This is invalid AST node, return an error.
-		if ctx.ErrHandler != nil {
-			return TryParseValueResult{ErrPos: in.Value.Position(), ErrMsg: "invalid AST node"}, ErrInvalidAST
-		}
-		return TryParseValueResult{}, ErrInvalidAST
-	}
-}
-
-// TryParseBooleanField tries to parse a boolean field.
-// It can be a single boolean value or a repeated boolean value.
-func (b *Interpreter) TryParseBooleanField(ctx *ParseContext, in TryParseValueInput) (TryParseValueResult, error) {
-	switch ft := in.Value.(type) {
-	case *ast.StringLiteral:
-		// String literal cannot be a bool value.
-		if ctx.ErrHandler != nil {
-			return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field cannot accept string literal as a value")}, ErrInvalidValue
-		}
-		return TryParseValueResult{}, ErrInvalidValue
-	case *ast.TextLiteral:
-		// Only the text literal can be a bool value.
-		switch {
-		case ft.Value == "true":
-			ve := expr.AcquireValueExpr()
-			ve.Value = true
-			return TryParseValueResult{Expr: ve}, nil
-		case ft.Value == "false":
-			ve := expr.AcquireValueExpr()
-			ve.Value = false
-			return TryParseValueResult{Expr: ve}, nil
-		case in.IsNullable && ft.Value == "null":
-			ve := expr.AcquireValueExpr()
-			ve.Value = nil
-			return TryParseValueResult{Expr: ve}, nil
-		}
-		// Invalid boolean value.
-		if ctx.ErrHandler != nil {
-			return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field is of bool type, but provided value is not a valid bool value: '%s'", ft.Value)}, ErrInvalidValue
-		}
-		return TryParseValueResult{}, ErrInvalidValue
-	case *ast.KeywordExpr:
-		// Keyword expression cannot be a bool value.
-		if ctx.ErrHandler != nil {
-			return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field cannot accept keyword expression as a value")}, ErrInvalidValue
-		}
-		return TryParseValueResult{}, ErrInvalidValue
-	case *ast.ArrayExpr:
-		// An array can be parsed as a repeated field value.
-		ve := expr.AcquireArrayExpr()
-		for _, elem := range ft.Elements {
-			// Try parsing each element as a bool value.
-			res, err := b.TryParseValue(ctx, TryParseValueInput{
-				Field:         in.Field,
-				AllowIndirect: in.AllowIndirect,
-				IsNullable:    in.IsNullable,
-				Value:         elem,
-			})
-			if err != nil {
-				return res, err
-			}
-
-			if res.Expr == nil {
-				// This is internal error, return an error.
-				if ctx.ErrHandler != nil {
-					return TryParseValueResult{ErrPos: elem.Position(), ErrMsg: "internal error: parsed expression is nil"}, ErrInternal
-				}
-				return TryParseValueResult{}, ErrInternal
-			}
-
-			if !in.AllowIndirect {
-				switch res.Expr.(type) {
-				case *expr.FunctionCallExpr, *expr.FieldSelectorExpr:
-					ve.Free()
-					res.Expr.Free()
-					if ctx.ErrHandler != nil {
-						return TryParseValueResult{ErrPos: elem.Position(), ErrMsg: fmt.Sprintf("field cannot accept function call or field selector expression as a value")}, ErrInvalidValue
-					}
-					return TryParseValueResult{}, ErrInternal
-				}
-			}
-
-			ve.Elements = append(ve.Elements, res.Expr)
-		}
-		return TryParseValueResult{Expr: ve}, nil
-	case *ast.StructExpr:
-		// A struct is not a valid bool.
-		if ctx.ErrHandler != nil {
-			return TryParseValueResult{ErrPos: ft.Position(), ErrMsg: fmt.Sprintf("field cannot accept struct expression as a value")}, ErrInvalidValue
-		}
-		return TryParseValueResult{}, ErrInvalidValue
-	}
-	_, ok := in.Value.(ast.FieldExpr)
-	if !ok {
-		// Invalid AST syntax, return an error.
-		if ctx.ErrHandler != nil {
-			return TryParseValueResult{ErrPos: in.Value.Position(), ErrMsg: "internal error: invalid AST syntax"}, ErrInvalidAST
-		}
-		return TryParseValueResult{}, ErrInvalidAST
-	}
-
-	// A FieldSelectorExpr can either be a value or keyword. ValueExpr is either string literal or text literal.
-	// This means that the FieldSelectorExpr is a keyword expression.
-	if ctx.ErrHandler != nil {
-		return TryParseValueResult{ErrPos: in.Value.Position(), ErrMsg: fmt.Sprintf("field cannot accept keyword expression as a value")}, ErrInvalidValue
-	}
-	return TryParseValueResult{}, ErrInvalidValue
-}
-
-// TryParseFloatField tries to parse a float field.
-// It can be a single float value or a repeated float value.
-func (b *Interpreter) TryParseFloatField(ctx *ParseContext, in TryParseValueInput) (TryParseValueResult, error) {
-	switch ft := in.Value.(type) {
-	case *ast.StringLiteral:
-		// String literal can be a float value.
-		ve := expr.AcquireValueExpr()
-		ve.Value = ft.Value
-		return TryParseValueResult{Expr: ve}, nil
-	case *ast.KeywordExpr:
-		// Keyword expression cannot be a float value.
-		if ctx.ErrHandler != nil {
-			return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field cannot accept keyword expression as a value")}, ErrInvalidValue
-		}
-		return TryParseValueResult{}, ErrInvalidValue
-	case *ast.TextLiteral:
-		// Only the text literal can be a float value.
-		if len(in.Args) == 0 {
-			if in.IsNullable && ft.Value == "null" {
-				ve := expr.AcquireValueExpr()
-				ve.Value = nil
-				return TryParseValueResult{Expr: ve}, nil
-			}
-			// This is a non fractial numeric value.
-			// Try parsing it as an integer.
-			v, err := strconv.ParseInt(ft.Value, 10, 64)
-			if err != nil {
-				if ctx.ErrHandler != nil {
-					return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field is of %q type, but provided value is not valid: '%s'", in.Field.Kind(), ft.Value)}, ErrInvalidValue
-				}
-				return TryParseValueResult{}, ErrInvalidValue
-			}
-			ve := expr.AcquireValueExpr()
-			ve.Value = float64(v)
-			return TryParseValueResult{Expr: ve}, nil
-		}
-
-		// There cannot be more than one argument for period separated float.
-		if len(in.Args) > 1 {
-			if ctx.ErrHandler != nil {
-				return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field is of %q type, but provided value is not valid: '%s'", in.Field.Kind(), ft.Value)}, ErrInvalidValue
-			}
-			return TryParseValueResult{}, ErrInvalidValue
-		}
-
-		var fractal string
-		// This is a fractal numeric value.
-		// Try parsing it as a float.
-		switch at := in.Args[0].(type) {
-		case *ast.TextLiteral:
-			fractal = at.Value
-		default:
-			if ctx.ErrHandler != nil {
-				return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field is of %q type, but provided value is not valid: '%s'", in.Field.Kind(), ft.Value+"."+at.String())}, ErrInvalidValue
-			}
-			return TryParseValueResult{}, ErrInvalidValue
-		}
-
-		var sb strings.Builder
-		sb.WriteString(ft.Value)
-		sb.WriteRune('.')
-		sb.WriteString(fractal)
-
-		bs := 64
-		if in.Field.Kind() == protoreflect.FloatKind {
-			bs = 32
-		}
-		v, err := strconv.ParseFloat(sb.String(), bs)
-		if err != nil {
-			if ctx.ErrHandler != nil {
-				return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field is of %q type, but provided value is not valid: '%s'", in.Field.Kind(), ft.Value+"."+fractal)}, ErrInvalidValue
-			}
-			return TryParseValueResult{}, ErrInvalidValue
-		}
-		ve := expr.AcquireValueExpr()
-		ve.Value = v
-		return TryParseValueResult{Expr: ve, ArgsUsed: 1}, nil
-	case *ast.ArrayExpr:
-		// Parse each element of the array.
-		// If any element is not a valid float value, return an error.
-		ve := expr.AcquireArrayExpr()
-		for _, e := range ft.Elements {
-			te, err := b.TryParseFloatField(ctx, TryParseValueInput{
-				Field:         in.Field,
-				AllowIndirect: in.AllowIndirect,
-				IsNullable:    in.IsNullable,
-				Value:         e,
-			})
-			if err != nil {
-				return TryParseValueResult{}, err
-			}
-			ve.Elements = append(ve.Elements, te.Expr)
-		}
-		return TryParseValueResult{Expr: ve}, nil
-	case *ast.StructExpr:
-		// A struct value cannot be a float value.
-		if ctx.ErrHandler != nil {
-			return TryParseValueResult{ErrPos: ft.Position(), ErrMsg: fmt.Sprintf("field cannot accept struct expression as a value")}, ErrInvalidValue
-		}
-		return TryParseValueResult{}, ErrInvalidValue
-	case *ast.FunctionCall:
-		// Call the function.
-		res, err := b.TryParseFunctionCall(ctx, in)
-		if err != nil {
-			return TryParseValueResult{}, err
-		}
-
-		// If the input does not allow indirect value, and result is a FunctionCall or FieldSelectorExpr,
-		// then return an error.
-		if !in.AllowIndirect {
-			switch res.Expr.(type) {
-			case *expr.FunctionCallExpr, *expr.FieldSelectorExpr:
-				res.Expr.Free()
-				var res TryParseValueResult
-				if ctx.ErrHandler != nil {
-					res.ErrPos = in.Value.Position()
-					res.ErrMsg = fmt.Sprintf("field does not allow indirect value")
-				}
-				return res, ErrInvalidValue
-			}
-		}
-		return res, nil
-	}
-	// Invalid AST syntax, return an error.
-	if ctx.ErrHandler != nil {
-		return TryParseValueResult{ErrPos: in.Value.Position(), ErrMsg: "internal error: invalid AST syntax"}, ErrInvalidAST
-	}
-	return TryParseValueResult{}, ErrInvalidAST
-}
 
 // TryParseBytesField tries to parse a bytes field.
 // It can be a single bytes value or a repeated bytes value.
@@ -1070,108 +431,6 @@ func (b *Interpreter) TryParseBytesField(ctx *ParseContext, in TryParseValueInpu
 	return TryParseValueResult{Expr: ve}, nil
 }
 
-// TryParseEnumField tries to parse an enum field.
-// It can be a single enum value or a repeated enum value.
-func (b *Interpreter) TryParseEnumField(ctx *ParseContext, in TryParseValueInput) (TryParseValueResult, error) {
-	if len(in.Args) > 0 {
-		// A non-repeated enum field cannot have nested fields.
-		if ctx.ErrHandler != nil {
-			return TryParseValueResult{ErrPos: in.Value.Position(), ErrMsg: fmt.Sprintf("field is of %q type, but provided value is not a valid %q value: '%s'", in.Field.Kind(), in.Field.Kind(), joinedName(in.Value, in.Args...))}, ErrInvalidValue
-		}
-		return TryParseValueResult{}, ErrInvalidValue
-	}
-
-	if in.Field.Enum() == nil {
-		if ctx.ErrHandler != nil {
-			return TryParseValueResult{ErrPos: in.Value.Position(), ErrMsg: fmt.Sprintf("field is not an enum field")}, ErrInvalidValue
-		}
-		return TryParseValueResult{}, ErrInvalidValue
-	}
-
-	var sl *ast.StringLiteral
-	switch ft := in.Value.(type) {
-	case *ast.StringLiteral:
-		sl = ft
-	case *ast.TextLiteral:
-		if in.IsNullable && ft.Value == "null" {
-			ve := expr.AcquireValueExpr()
-			ve.Value = nil
-			return TryParseValueResult{Expr: ve}, nil
-		}
-		if ctx.ErrHandler != nil {
-			return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field is of %q type, but provided value is not a valid value: '%s'. String literal required", in.Field.Enum().FullName(), ft.Value)}, ErrInvalidValue
-		}
-		return TryParseValueResult{}, ErrInvalidValue
-	case *ast.KeywordExpr:
-		// Keyword expression cannot be a enum value.
-		if ctx.ErrHandler != nil {
-			return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field cannot accept keyword expression as a value")}, ErrInvalidValue
-		}
-		return TryParseValueResult{}, ErrInvalidValue
-	case *ast.ArrayExpr:
-		// An array can be parsed as a repeated field value.
-		ve := expr.AcquireArrayExpr()
-		for _, elem := range ft.Elements {
-			// Try parsing each element as a enum value.
-			res, err := b.TryParseValue(ctx, TryParseValueInput{
-				Field:         in.Field,
-				AllowIndirect: in.AllowIndirect,
-				IsNullable:    in.IsNullable,
-				Value:         elem,
-			})
-			if err != nil {
-				return res, err
-			}
-
-			if res.Expr == nil {
-				// This is internal error, return an error.
-				if ctx.ErrHandler != nil {
-					return TryParseValueResult{ErrPos: elem.Position(), ErrMsg: "internal error: parsed expression is nil"}, ErrInternal
-				}
-				return TryParseValueResult{}, ErrInternal
-			}
-
-			if !in.AllowIndirect {
-				switch res.Expr.(type) {
-				case *expr.FunctionCallExpr, *expr.FieldSelectorExpr:
-					ve.Free()
-					res.Expr.Free()
-					if ctx.ErrHandler != nil {
-						return TryParseValueResult{ErrPos: elem.Position(), ErrMsg: fmt.Sprintf("field cannot accept function call or field selector expression as a value")}, ErrInvalidValue
-					}
-					return TryParseValueResult{}, ErrInternal
-				}
-			}
-
-			ve.Elements = append(ve.Elements, res.Expr)
-		}
-		return TryParseValueResult{Expr: ve}, nil
-	case *ast.StructExpr:
-		// A struct is not a valid enum.
-		if ctx.ErrHandler != nil {
-			return TryParseValueResult{ErrPos: ft.Position(), ErrMsg: fmt.Sprintf("field cannot accept struct expression as a value")}, ErrInvalidValue
-		}
-		return TryParseValueResult{}, ErrInvalidValue
-	default:
-		if ctx.ErrHandler != nil {
-			return TryParseValueResult{ErrPos: in.Value.Position(), ErrMsg: "invalid AST node"}, ErrInvalidAST
-		}
-		return TryParseValueResult{}, ErrInvalidAST
-	}
-
-	enumValue := in.Field.Enum().Values().ByName(protoreflect.Name(sl.Value))
-	if enumValue == nil {
-		if ctx.ErrHandler != nil {
-			return TryParseValueResult{ErrPos: sl.Pos, ErrMsg: fmt.Sprintf("field is of %q type, but provided value is not valid: '%s'", in.Field.Enum().FullName(), sl.Value)}, ErrInvalidValue
-		}
-		return TryParseValueResult{}, ErrInvalidValue
-	}
-
-	ve := expr.AcquireValueExpr()
-	ve.Value = enumValue.Number()
-	return TryParseValueResult{Expr: ve}, nil
-}
-
 func joinedName(v ast.AnyExpr, args ...ast.FieldExpr) string {
 	var sb strings.Builder
 	v.WriteStringTo(&sb, false)
@@ -1180,59 +439,6 @@ func joinedName(v ast.AnyExpr, args ...ast.FieldExpr) string {
 		arg.WriteStringTo(&sb, false)
 	}
 	return sb.String()
-}
-
-func IsFieldNullable(field protoreflect.FieldDescriptor) bool {
-	// At first try blockaypi.E_Nullable extension, if not found, then try google api.OPTIONAL extension.
-	// If not found, then return false.
-	queryOpts, ok := proto.GetExtension(field.Options(), blockyannotations.E_QueryOpt).([]blockyannotations.FieldQueryOption)
-	if ok {
-		for _, qo := range queryOpts {
-			if qo == blockyannotations.FieldQueryOption_NULLABLE {
-				return true
-			}
-		}
-	}
-
-	fb, ok := proto.GetExtension(field.Options(), annotations.E_FieldBehavior).([]annotations.FieldBehavior)
-	if !ok {
-		return false
-	}
-
-	if field.Kind() == protoreflect.MessageKind {
-		for _, b := range fb {
-			if b == annotations.FieldBehavior_REQUIRED {
-				return false
-			}
-		}
-		return true
-	}
-	for _, b := range fb {
-		switch b {
-		case annotations.FieldBehavior_REQUIRED, annotations.FieldBehavior_IMMUTABLE:
-			return false
-		case annotations.FieldBehavior_OPTIONAL:
-			return true
-		}
-	}
-	return false
-}
-
-func GetFieldComplexity(fd FieldDescriptor) int64 {
-	switch fdt := fd.(type) {
-	case *FunctionCallArgumentDeclaration:
-		return 1
-	case *FunctionCallReturningDeclaration:
-		return 1
-	case protoreflect.FieldDescriptor:
-		c, ok := proto.GetExtension(fdt.Options(), blockyannotations.E_Complexity).(int64)
-		if ok {
-			return c
-		}
-		return 1
-	default:
-		return 1
-	}
 }
 
 func isKindComparable(k1, k2 protoreflect.Kind) bool {

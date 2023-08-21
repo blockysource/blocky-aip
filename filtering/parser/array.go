@@ -49,6 +49,14 @@ func (p *Parser) parseArrayExpr(pos token.Position) (*ast.ArrayExpr, error) {
 	a := getArrayExpr()
 	a.LBracket = pos
 
+	pos, tok, lit := p.scanner.Scan()
+	if tok != token.BRACKET_OPEN {
+		if p.err != nil {
+			p.err(pos, "array: '[' expected but got: "+lit)
+		}
+		return nil, ErrInvalidFilterSyntax
+	}
+
 	i := 0
 	for {
 		p.scanner.SkipWhitespace()
@@ -77,7 +85,7 @@ func (p *Parser) parseArrayExpr(pos token.Position) (*ast.ArrayExpr, error) {
 		i++
 	}
 
-	pos, tok, lit := p.scanner.Scan()
+	pos, tok, lit = p.scanner.Scan()
 	if tok != token.BRACKET_CLOSE {
 		if p.err != nil {
 			p.err(pos, "array: ']' expected but got: "+lit)

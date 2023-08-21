@@ -15,6 +15,7 @@
 package scanner
 
 import (
+	"strings"
 	"unicode"
 	"unicode/utf8"
 
@@ -257,21 +258,32 @@ func (s *Scanner) scanOrPeekToken() (pos token.Position, tok token.Token, lit st
 
 func (s *Scanner) scanString() string {
 	// opening quote is already consumed
-	offset := s.offset
-	sum := 0
+	isEscape := false
+	var sb strings.Builder
 	for {
-		ch, w := s.next()
-		sum += w
+		ch, _ := s.next()
 		if isEOF(ch) {
 			s.error(s.offset, "unterminated string")
 			break
 		}
+
+		// Handle escape characters.
+		if ch == '\\' {
+			isEscape = true
+			continue
+		}
 		if isQuote(ch) {
+			if isEscape {
+				sb.WriteRune(ch)
+				isEscape = false
+				continue
+			}
 			s.next() // consume closing quote
 			break
 		}
+		sb.WriteRune(ch)
 	}
-	return s.src[offset : offset+sum-1]
+	return sb.String()
 }
 
 func isQuote(ch rune) bool {

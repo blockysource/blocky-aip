@@ -63,11 +63,11 @@ type OrExpr struct {
 
 // Complexity of the OrExpr is the product of complexities of the inner expressions + 1.
 func (e *OrExpr) Complexity() int64 {
-	var complexity int64
+	complexity := int64(1)
 	for _, expr := range e.Expr {
 		complexity *= expr.Complexity()
 	}
-	return complexity + 1
+	return complexity
 }
 
 // isFilterExpr is a marker method for expressions.

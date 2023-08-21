@@ -263,6 +263,12 @@ func TestParse(t *testing.T) {
 			src:     restrictionWithNegativeIntOnRight,
 			checkFn: testRestrictionWithNegativeIntOnRight,
 		},
+		{
+			name:       "unnamed struct",
+			src:        tstUnnamedStruct,
+			checkFn:    testUnnamedStruct,
+			useStructs: true,
+		},
 	}
 
 	for _, tc := range testCases {
