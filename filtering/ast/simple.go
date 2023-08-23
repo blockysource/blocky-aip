@@ -26,9 +26,10 @@ import (
 // EBNF:
 //
 // simple
-//    : restriction
-//    | composite
-//    ;
+//
+//	: restriction
+//	| composite
+//	;
 type SimpleExpr interface {
 	UnquotedString() string
 	String() string

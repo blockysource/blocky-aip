@@ -25,9 +25,10 @@ import (
 // EBNF:
 //
 // field
-//    : value
-//    | keyword
-//    ;
+//
+//	: value
+//	| keyword
+//	;
 type FieldExpr interface {
 	// String returns the string representation of the field.
 	String() string

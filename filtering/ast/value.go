@@ -26,9 +26,10 @@ import (
 // EBNF:
 //
 // value
-//    : TEXT
-//    | STRING
-//    ;
+//
+//	: TEXT
+//	| STRING
+//	;
 type ValueExpr interface {
 	AnyExpr
 

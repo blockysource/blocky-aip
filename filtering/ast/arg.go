@@ -25,9 +25,10 @@ import (
 // EBNF:
 //
 // arg
-//    : comparable
-//    | composite
-//    ;
+//
+//	: comparable
+//	| composite
+//	;
 type ArgExpr interface {
 	String() string
 	UnquotedString() string

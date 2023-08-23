@@ -127,7 +127,6 @@ func testArrayWithQuote(t *testing.T, pf *ParsedFilter) {
 	}
 }
 
-
 const arrayWithQuoteAndWS = `["a", "b"]`
 
 func testArrayWithQuoteAndWS(t *testing.T, pf *ParsedFilter) {

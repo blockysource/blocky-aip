@@ -21,13 +21,11 @@ import (
 	"github.com/blockysource/blocky-aip/filtering/token"
 )
 
-
 // Compile-
 var (
 	_ ValueExpr = (*StringLiteral)(nil)
 	_ FieldExpr = (*StringLiteral)(nil)
 )
-
 
 // StringLiteral is a string literal. It is enclosed in double quotes.
 // The string may or may not contain a special wildcard `*` character

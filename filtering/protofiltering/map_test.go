@@ -314,5 +314,4 @@ func testMapStringS64FieldEqDirect(t *testing.T, x expr.FilterExpr) {
 	}
 }
 
-
 const tstMapStringF32FieldEqDirect = `map_str_f32 = map{"test": 1, "test2": 2}`

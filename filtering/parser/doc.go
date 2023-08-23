@@ -23,15 +23,15 @@
 //
 // Example:
 //
-// func main() {
-//  p := parser.NewParser(parser.ErrorHandler(func(pos token.Position, msg string) {
-//      log.Printf("Error at %s: %s", pos, msg)
-//  }))
+//	func main() {
+//	 p := parser.NewParser(parser.ErrorHandler(func(pos token.Position, msg string) {
+//	     log.Printf("Error at %s: %s", pos, msg)
+//	 }))
 //
-//  expr, err := p.Parse("foo:bar")
-//  if err != nil {
-//      log.Fatal(err)
-//  }
+//	 expr, err := p.Parse("foo:bar")
+//	 if err != nil {
+//	     log.Fatal(err)
+//	 }
 //
 // The parser by default doesn't recognize any identifiers, and values.
 // The literals are either a *ast.TextLiteral or  *ast.StringLiteral.
@@ -48,17 +48,17 @@
 //
 // Example:
 //
-// func main() {
-//  p := parser.NewParser(parser.ArgMemberModifierOption(parser.ParseMemberNumber))
+//	func main() {
+//	 p := parser.NewParser(parser.ArgMemberModifierOption(parser.ParseMemberNumber))
 //
-//  expr, err := p.Parse("m = 1.0")
-//  if err != nil {
-//      log.Fatal(err)
-//  }
-//  // expr is a *parser.ParsedFilter, which contains a *ast.RestrictionExpr.
-//  // it has a Comparable field set to a 'm' *ast.MemberExpr, with a Value of *ast.TextLiteral.Value = "a",
-//  // in addition it has an Arg ast.ArgExpr which is a *ast.MemberExpr with a single Value of
-//  // *ast.TextLiteral.Value = "1.0", and a DecodedValue == float64(1.0).
-//  // If no ArgMemberModifierOption was provided, the Arg would be a *ast.MemberExpr with a
-//  // Value = *ast.TextLiteral.Value = "1" and a Field = *ast.TextLiteral.Value = "0".
+//	 expr, err := p.Parse("m = 1.0")
+//	 if err != nil {
+//	     log.Fatal(err)
+//	 }
+//	 // expr is a *parser.ParsedFilter, which contains a *ast.RestrictionExpr.
+//	 // it has a Comparable field set to a 'm' *ast.MemberExpr, with a Value of *ast.TextLiteral.Value = "a",
+//	 // in addition it has an Arg ast.ArgExpr which is a *ast.MemberExpr with a single Value of
+//	 // *ast.TextLiteral.Value = "1.0", and a DecodedValue == float64(1.0).
+//	 // If no ArgMemberModifierOption was provided, the Arg would be a *ast.MemberExpr with a
+//	 // Value = *ast.TextLiteral.Value = "1" and a Field = *ast.TextLiteral.Value = "0".
 package parser

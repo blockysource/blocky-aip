@@ -29,8 +29,9 @@ var _ ComparableExpr = (*MemberExpr)(nil)
 // EBNF:
 //
 // member
-//    : value {DOT field}
-//    ;
+//
+//	: value {DOT field}
+//	;
 //
 // MemberExpr implements ComparableExpr.
 type MemberExpr struct {

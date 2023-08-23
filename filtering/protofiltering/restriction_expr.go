@@ -116,7 +116,7 @@ func (b *Interpreter) HandleRestrictionExpr(ctx *ParseContext, x *ast.Restrictio
 			fd = fd.MapKey()
 		}
 
-		fi := b.getFieldInfo( fd)
+		fi := b.getFieldInfo(fd)
 
 		// Try getting the value of the right hand side.
 		ve, err := b.TryParseValue(ctx, TryParseValueInput{

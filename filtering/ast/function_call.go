@@ -29,8 +29,9 @@ var (
 // which mau use simple or qualified names with zero or more arguments.
 //
 // function
-//    : name {DOT name} LPAREN [argList] RPAREN
-//    ;
+//
+//	: name {DOT name} LPAREN [argList] RPAREN
+//	;
 //
 // FunctionCall implements ComparableExpr.
 type FunctionCall struct {

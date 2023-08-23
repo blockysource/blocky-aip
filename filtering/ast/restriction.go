@@ -30,11 +30,11 @@ var (
 // single argument. When the restriction only specifies a comparable
 // without an operator, this is a global restriction.
 //
-// 	EBNF:
+//	EBNF:
 //
-// 	restriction
-// 		: comparable [comparator arg]
-// 		;
+//	restriction
+//		: comparable [comparator arg]
+//		;
 //
 // RestrictionExpr implements SimpleExpr.
 type RestrictionExpr struct {

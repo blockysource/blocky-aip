@@ -30,8 +30,9 @@ var _ AnyExpr = (*TermExpr)(nil)
 // TermExpr are separated in the FactorExpr by the OR operator.
 // The position of the OR operator is stored in the OrOpPos field, in a TermExpr which
 // stands before the operator, i.e.:
-// 	`-foo OR bar` -> OrOpPos is the position of the OR operator after `-foo`.
-//                   It is stored in the '-foo' TermExpr.OrOpPos field.
+//
+//		`-foo OR bar` -> OrOpPos is the position of the OR operator after `-foo`.
+//	                  It is stored in the '-foo' TermExpr.OrOpPos field.
 type TermExpr struct {
 	Pos token.Position
 

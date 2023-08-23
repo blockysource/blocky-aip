@@ -465,7 +465,6 @@ func testF32FieldINArrayIndirect(t *testing.T, x expr.FilterExpr) {
 	}
 }
 
-
 const tstF32FieldEQIndirect = `f32 = sub.f32`
 
 func testF32FieldEQIndirect(t *testing.T, x expr.FilterExpr) {
@@ -509,4 +508,3 @@ const tstF64FieldEQDirect = `f64 = 1`
 func testF64FieldEQDirect(t *testing.T, x expr.FilterExpr) {
 
 }
-

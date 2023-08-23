@@ -21,11 +21,9 @@
 // An abstract call results in returning of expr.FunctionCall expression, that can be handled by the caller.
 // A direct call works like a macro that converts input arguments to a concrete expression.
 // This implementation supports extensions to the standard AIP-160 filtering language:
-// 	- IN operator - checks if a value is in a list of values etc.
-//	- Struct value expression - allows to compose a proto.Message or a map field from a syntax like:
-//		pkg.MyType{field1: value1, field2: value2} or
-//		map{key1: value1, key2: value2}
-//  - Array value expression - allows to use repeated value expression like: [1, 2, 3]
-//
-//
+//   - IN operator - checks if a value is in a list of values etc.
+//   - Struct value expression - allows to compose a proto.Message or a map field from a syntax like:
+//     pkg.MyType{field1: value1, field2: value2} or
+//     map{key1: value1, key2: value2}
+//   - Array value expression - allows to use repeated value expression like: [1, 2, 3]
 package protofiltering

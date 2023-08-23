@@ -26,9 +26,10 @@ import (
 // EBNF:
 //
 // name
-//    : TEXT
-//    | KEYWORD
-//    ;
+//
+//	: TEXT
+//	| KEYWORD
+//	;
 type NameExpr interface {
 	// String returns the string representation of the name.
 	String() string

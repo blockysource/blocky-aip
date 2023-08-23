@@ -22,7 +22,6 @@ import (
 
 const factorsWithOR = `a OR b`
 
-
 func testFactorsWithOR(t *testing.T, pf *ParsedFilter) {
 	if pf.Expr == nil {
 		t.Fatalf("expected parsed filter got: %v", pf)

@@ -25,8 +25,9 @@ import (
 // EBNF:
 //
 // argList
-//    : arg { COMMA arg}
-//    ;
+//
+//	: arg { COMMA arg}
+//	;
 type ArgListExpr struct {
 	Args []ArgExpr
 }

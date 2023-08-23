@@ -26,15 +26,16 @@ import (
 // EBNF:
 //
 // comparator
-//    : LESS_EQUALS      # <=
-//    | LESS_THAN        # <
-//    | GREATER_EQUALS   # >=
-//    | GREATER_THAN     # >
-//    | NOT_EQUALS       # !=
-//    | EQUALS           # =
-//    | HAS              # :
-//    | IN 			     # IN (extension to the standard)
-//    ;
+//
+//	: LESS_EQUALS      # <=
+//	| LESS_THAN        # <
+//	| GREATER_EQUALS   # >=
+//	| GREATER_THAN     # >
+//	| NOT_EQUALS       # !=
+//	| EQUALS           # =
+//	| HAS              # :
+//	| IN 			     # IN (extension to the standard)
+//	;
 type ComparatorLiteral struct {
 	Pos  token.Position
 	Type ComparatorType

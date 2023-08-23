@@ -23,14 +23,14 @@ import (
 // ComparableExpr is either a member or a function expression.
 // Comparable may either be a member or function.
 //
-// 	EBNF:
+//	EBNF:
 //
-// 	comparable
-// 		: member
-// 		| function
-// 		| struct (extension)
-// 		| array (extension)
-// 		;
+//	comparable
+//		: member
+//		| function
+//		| struct (extension)
+//		| array (extension)
+//		;
 type ComparableExpr interface {
 	Position() token.Position
 	UnquotedString() string

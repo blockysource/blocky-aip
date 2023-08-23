@@ -282,5 +282,3 @@ func testRepeatedStringFieldEqDirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value 'test2' but got %s", ve1.Value)
 	}
 }
-
-

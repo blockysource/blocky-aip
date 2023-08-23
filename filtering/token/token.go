@@ -27,7 +27,7 @@ const (
 	// TIMESTAMP is a special type of literal, which is not defined by the standard EBNF.
 	// It is used to represent a TEXT literal, which is a valid timestamp.
 	TIMESTAMP // 2021-01-01T00:00:00Z
-	STRING         // "abc" or 'abc'
+	STRING    // "abc" or 'abc'
 	literal_end
 
 	keyword_beg
@@ -65,9 +65,9 @@ var tokens = [...]string{
 	EOF:     "EOF",
 	WS:      "WS",
 
-	TEXT:           "TEXT",
+	TEXT:      "TEXT",
 	TIMESTAMP: "TIMESTAMP",
-	STRING:         "STRING",
+	STRING:    "STRING",
 
 	AND:   "AND",
 	OR:    "OR",

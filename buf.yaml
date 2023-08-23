@@ -1,4 +1,3 @@
-
 version: v1
 name: buf.build/blockyapis/blocky-aip
 deps:
