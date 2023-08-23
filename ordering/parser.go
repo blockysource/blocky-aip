@@ -12,11 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package sorting
+package ordering
 
 import (
 	"errors"
 	"fmt"
+	"sync"
 
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -26,25 +27,77 @@ import (
 )
 
 var (
-	ErrInternalError    = errors.New("internal error")
-	ErrInvalidField     = errors.New("invalid field")
-	ErrInvalidSyntax    = errors.New("invalid syntax")
+	// ErrInternalError is an internal sorting error.
+	ErrInternalError = errors.New("internal error")
+
+	// ErrInvalidField is an error returned by the parser when the sorting expression
+	// contains invalid field name.
+	ErrInvalidField = errors.New("invalid field")
+
+	// ErrInvalidSyntax is an error returned by the parser when the sorting expression
+	// has invalid syntax.
+	ErrInvalidSyntax = errors.New("invalid syntax")
+
+	// ErrSortingForbidden is an error returned by the parser when the sorting
+	// is forbidden of specific field.
 	ErrSortingForbidden = errors.New("sorting forbidden")
 )
 
 // Parser parses an order by expression
 type Parser struct {
-	msgDesc protoreflect.MessageDescriptor
-
+	msgDesc    protoreflect.MessageDescriptor
 	errHandler ErrHandlerFn
+
+	fieldsInfo []fieldInfo
+	mut        sync.RWMutex
+}
+
+type fieldInfo struct {
+	fd         protoreflect.FieldDescriptor
+	complexity int64
+	forbidden  bool
+}
+
+// ParserOpt is an option function for the parser.
+type ParserOpt func(p *Parser) error
+
+// ErrHandler sets the error handler for the parser.
+func ErrHandler(fn ErrHandlerFn) ParserOpt {
+	return func(p *Parser) error {
+		p.errHandler = fn
+		return nil
+	}
+}
+
+func NewParser(msg protoreflect.MessageDescriptor, opts ...ParserOpt) (*Parser, error) {
+	p := &Parser{msgDesc: msg, fieldsInfo: make([]fieldInfo, 0, 10)}
+
+	for _, opt := range opts {
+		if err := opt(p); err != nil {
+			return nil, err
+		}
+	}
+
+	return p, nil
 }
 
 // Reset resets the parser with a new message descriptor
 // and optional error handler.
 // If the error handler is nil, the parser will handling errors.
-func (p *Parser) Reset(msgDesc protoreflect.MessageDescriptor, errHandler ErrHandlerFn) {
+func (p *Parser) Reset(msgDesc protoreflect.MessageDescriptor, opts ...ParserOpt) error {
 	p.msgDesc = msgDesc
-	p.errHandler = errHandler
+	if p.fieldsInfo != nil {
+		p.fieldsInfo = make([]fieldInfo, 0, 10)
+	} else {
+		p.fieldsInfo = p.fieldsInfo[:0]
+	}
+	for _, opt := range opts {
+		if err := opt(p); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // ErrHandlerFn is a function that handles errors
@@ -92,23 +145,15 @@ func (p *Parser) Parse(orderBy string) (oe *expr.OrderByExpr, err error) {
 		cur := expr.AcquireOrderByFieldExpr()
 
 		// Parse the field name literal.
-		fd, err := p.parseField(p.msgDesc, int(pos), lit)
+		fd, c, err := p.parseField(p.msgDesc, int(pos), lit)
 		if err != nil {
 			oe.Free()
 			return nil, err
 		}
 
-		if isFieldSortingForbidden(fd) {
-			oe.Free()
-			if p.errHandler != nil {
-				p.errHandler(int(pos), fmt.Sprintf("field %q is forbidden for sorting", fd.Name()))
-			}
-			return nil, ErrSortingForbidden
-		}
-
 		fe := expr.AcquireFieldSelectorExpr()
 		fe.Field = fd
-		fe.FieldComplexity = getFieldComplexity(fd)
+		fe.FieldComplexity = c
 		cur.Field = fe
 
 		for {
@@ -135,23 +180,15 @@ func (p *Parser) Parse(orderBy string) (oe *expr.OrderByExpr, err error) {
 				return nil, ErrInvalidSyntax
 			}
 
-			fd, err = p.parseField(fd.Message(), int(pos), lit)
+			fd, c, err = p.parseField(fd.Message(), int(pos), lit)
 			if err != nil {
 				oe.Free()
 				return nil, err
 			}
 
-			if isFieldSortingForbidden(fd) {
-				oe.Free()
-				if p.errHandler != nil {
-					p.errHandler(int(pos), fmt.Sprintf("field %q is forbidden for sorting", fd.Name()))
-				}
-				return nil, ErrSortingForbidden
-			}
-
 			fe := expr.AcquireFieldSelectorExpr()
 			fe.Field = fd
-			fe.FieldComplexity = getFieldComplexity(fd)
+			fe.FieldComplexity = c
 
 			setLatestTraverseField(cur, fe)
 		}
@@ -227,28 +264,75 @@ func setLatestTraverseField(obfe *expr.OrderByFieldExpr, fs *expr.FieldSelectorE
 	}
 }
 
-func (p *Parser) parseField(md protoreflect.MessageDescriptor, pos int, lit string) (protoreflect.FieldDescriptor, error) {
+func (p *Parser) parseField(md protoreflect.MessageDescriptor, pos int, lit string) (protoreflect.FieldDescriptor, int64, error) {
 	if lit == "" {
 		if p.errHandler != nil {
 			p.errHandler(pos, "expected field name")
 		}
-		return nil, ErrInternalError
+		return nil, 0, ErrInternalError
 	}
 
 	fd := md.Fields().ByName(protoreflect.Name(lit))
 	if fd == nil {
-		if p.errHandler != nil {
-			p.errHandler(pos, fmt.Sprintf("field: %s is not a valid field", lit))
+		var found bool
+		for i := 0; i < md.Oneofs().Len(); i++ {
+			of := md.Oneofs().Get(i)
+			fd = of.Fields().ByName(protoreflect.Name(lit))
+			if fd == nil {
+				found = true
+				break
+			}
 		}
-		return nil, ErrInvalidField
+		if !found {
+			if p.errHandler != nil {
+				p.errHandler(pos, fmt.Sprintf("field: %s is not a valid field", lit))
+			}
+			return nil, 0, ErrInvalidField
+		}
 	}
 
-	return fd, nil
+	fi := p.getFieldInfo(fd)
+
+	if fi.forbidden {
+		if p.errHandler != nil {
+			p.errHandler(pos, "ordering by given field is forbidden")
+		}
+		return nil, 0, ErrSortingForbidden
+	}
+
+	return fd, fi.complexity, nil
+}
+
+func (p *Parser) getFieldInfo(fd protoreflect.FieldDescriptor) fieldInfo {
+	var (
+		fi    fieldInfo
+		found bool
+	)
+	p.mut.RLock()
+	for i := 0; i < len(p.fieldsInfo); i++ {
+		fi = p.fieldsInfo[i]
+		if fi.fd == fd {
+			found = true
+			break
+		}
+	}
+	p.mut.RUnlock()
+	if !found {
+		p.mut.Lock()
+		fi = fieldInfo{
+			fd:         fd,
+			complexity: getFieldComplexity(fd),
+			forbidden:  isFieldSortingForbidden(fd),
+		}
+		p.fieldsInfo = append(p.fieldsInfo, fi)
+		p.mut.Unlock()
+	}
+	return fi
 }
 
 func getFieldComplexity(fd protoreflect.FieldDescriptor) int64 {
 	c, ok := proto.GetExtension(fd.Options(), blockyannnotations.E_Complexity).(int64)
-	if !ok {
+	if !ok || c == 0 {
 		return 1
 	}
 	return c
