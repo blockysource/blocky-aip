@@ -78,9 +78,15 @@ message Message {
   Message sub = 40;
   repeated Message rp_sub = 41;
 
-  string no_filter = 42 [(blocky.api.query_opt) = FORBID_FILTERING];
+  string no_filter = 42 [
+    (blocky.api.query_opt) = FORBID_FILTERING,
+    (blocky.api.query_opt) = FORBID_SORTING
+  ];
 
-  Message no_filter_msg = 43 [(blocky.api.query_opt) = FORBID_FILTERING];
+  Message no_filter_msg = 43 [
+    (blocky.api.query_opt) = FORBID_FILTERING,
+    (blocky.api.query_opt) = FORBID_SORTING
+  ];
 
   int32 i32_complexity = 44 [(blocky.api.complexity) = 44];
 
