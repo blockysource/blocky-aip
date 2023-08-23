@@ -109,11 +109,13 @@ func (b *Interpreter) TryParseMessageStructField(ctx *ParseContext, in TryParseV
 				return TryParseValueResult{}, ErrInvalidValue
 			}
 
+			fi := b.getFieldInfo(df)
+
 			// Try parsing the field value.
 			v, err := b.TryParseValue(ctx, TryParseValueInput{
 				Field:         df,
 				AllowIndirect: in.AllowIndirect,
-				IsNullable:    IsFieldNullable(df),
+				IsNullable:    fi.nullable,
 				Value:         field.Value,
 			})
 			if err != nil {

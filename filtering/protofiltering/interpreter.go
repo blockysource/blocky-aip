@@ -60,6 +60,18 @@ type Interpreter struct {
 	errHandlerFn func(pos token.Position, msg string)
 
 	functionCallDeclarations map[string]*FunctionCallDeclaration
+
+	fieldInfo struct {
+		ls  []fieldInfo
+		mut sync.RWMutex
+	}
+}
+
+type fieldInfo struct {
+	fd         protoreflect.FieldDescriptor
+	complexity int64
+	forbidden  bool
+	nullable   bool
 }
 
 // Option is an option that can be passed to the interpreter.
@@ -101,20 +113,53 @@ func RegisterFunction(fn *FunctionCallDeclaration) Option {
 
 // NewInterpreter returns a new interpreter.
 func NewInterpreter(msg protoreflect.MessageDescriptor, opts ...Option) (*Interpreter, error) {
-	b := &Interpreter{
+	b := Interpreter{
 		msg: msg,
 	}
 
+	if err := b.Reset(msg, opts...); err != nil {
+		return nil, err
+	}
+	return &b, nil
+}
+
+func (b *Interpreter) Reset(msg protoreflect.MessageDescriptor, opts ...Option) error {
+	b.msg = msg
+	b.fieldInfo.ls = make([]fieldInfo, 0, 16)
+
 	if b.msg == nil {
-		return nil, errors.New("message descriptor is not set")
+		return errors.New("message descriptor is not set")
 	}
 
 	for _, opt := range opts {
 		if err := opt(b); err != nil {
-			return nil, err
+			return err
 		}
 	}
-	return b, nil
+	return nil
+}
+
+func (b *Interpreter) getFieldInfo(fd protoreflect.FieldDescriptor) fieldInfo {
+	b.fieldInfo.mut.RLock()
+
+	for _, fi := range b.fieldInfo.ls {
+		if fi.fd == fd {
+			b.fieldInfo.mut.RUnlock()
+			return fi
+		}
+	}
+	b.fieldInfo.mut.RUnlock()
+
+	b.fieldInfo.mut.Lock()
+	fi := fieldInfo{
+		fd:         fd,
+		complexity: getFieldComplexity(fd),
+		forbidden:  IsFieldFilteringForbidden(fd),
+		nullable:   IsFieldNullable(fd),
+	}
+	b.fieldInfo.ls = append(b.fieldInfo.ls, fi)
+	b.fieldInfo.mut.Unlock()
+	return fi
 }
 
 // Parse input filter into an expression.

@@ -90,7 +90,7 @@ func testMultipleExpressions(t *testing.T, x expr.FilterExpr) {
 	}
 }
 
-// Complexity: 120
+// Complexity: 320
 const tstComplexExpression = `(enum = "ONE" AND i64 = 1) OR (enum = "TWO" AND i64 = sub.i32) OR rp_enum IN ["ONE", "TWO"]`
 
 func testComplexExpression(t *testing.T, x expr.FilterExpr) {

@@ -116,12 +116,14 @@ func (b *Interpreter) HandleRestrictionExpr(ctx *ParseContext, x *ast.Restrictio
 			fd = fd.MapKey()
 		}
 
+		fi := b.getFieldInfo( fd)
+
 		// Try getting the value of the right hand side.
 		ve, err := b.TryParseValue(ctx, TryParseValueInput{
 			Field:         fd,
 			Value:         x.Arg,
 			AllowIndirect: true,
-			IsNullable:    IsFieldNullable(field.Field),
+			IsNullable:    fi.nullable,
 		})
 		if err != nil {
 			// The right hand side is not a value expression, try parsing it as a selector.

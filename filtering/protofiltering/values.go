@@ -116,14 +116,18 @@ func GetFieldComplexity(fd FieldDescriptor) int64 {
 	case *FunctionCallReturningDeclaration:
 		return 1
 	case protoreflect.FieldDescriptor:
-		c, ok := proto.GetExtension(fdt.Options(), blockyannotations.E_Complexity).(int64)
-		if ok {
-			return c
-		}
-		return 1
+		return getFieldComplexity(fdt)
 	default:
 		return 1
 	}
+}
+
+func getFieldComplexity(fdt protoreflect.FieldDescriptor) int64 {
+	c, ok := proto.GetExtension(fdt.Options(), blockyannotations.E_Complexity).(int64)
+	if !ok || c == 0 {
+		return 1
+	}
+	return c
 }
 
 // TryParseValue tries to parse a value expression.
@@ -346,7 +350,6 @@ func (b *Interpreter) TryParseMapField(ctx *ParseContext, in TryParseValueInput)
 		return res, ErrInvalidValue
 	}
 }
-
 
 // TryParseBytesField tries to parse a bytes field.
 // It can be a single bytes value or a repeated bytes value.

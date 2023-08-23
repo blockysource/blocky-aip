@@ -110,7 +110,9 @@ func (b *Interpreter) TryParseSelectorExpr(ctx *ParseContext, value ast.ValueExp
 		return res, ErrInvalidValue
 	}
 
-	if IsFieldFilteringForbidden(field) {
+	fi := b.getFieldInfo(field)
+
+	if fi.forbidden {
 		// Cannot traverse through fields that forbid filtering.
 		var res TryParseValueResult
 		if ctx.ErrHandler != nil {
@@ -126,22 +128,14 @@ func (b *Interpreter) TryParseSelectorExpr(ctx *ParseContext, value ast.ValueExp
 		fe := expr.AcquireFieldSelectorExpr()
 		fe.Message = ctx.Message
 		fe.Field = field
-		fc, ok := proto.GetExtension(field.Options(), blockyannotations.E_Complexity).(int64)
-		if !ok {
-			fc = 1
-		}
-		fe.FieldComplexity = fc
+		fe.FieldComplexity = fi.complexity
 		return TryParseValueResult{Expr: fe}, nil
 	}
 
-	fc, ok := proto.GetExtension(field.Options(), blockyannotations.E_Complexity).(int64)
-	if !ok {
-		fc = 1
-	}
 	root := expr.AcquireFieldSelectorExpr()
 	root.Message = field.Parent().(protoreflect.MessageDescriptor)
 	root.Field = field
-	root.FieldComplexity = fc
+	root.FieldComplexity = fi.complexity
 	parentFieldX := root
 	parent := expr.FilterExpr(root)
 
@@ -161,7 +155,9 @@ func (b *Interpreter) TryParseSelectorExpr(ctx *ParseContext, value ast.ValueExp
 				return res, ErrInvalidValue
 			}
 
-			if IsFieldFilteringForbidden(pt.Field) {
+			pfi := b.getFieldInfo(pt.Field)
+
+			if pfi.forbidden {
 				// Cannot traverse through fields that forbid filtering.
 				var res TryParseValueResult
 				if ctx.ErrHandler != nil {
@@ -184,7 +180,7 @@ func (b *Interpreter) TryParseSelectorExpr(ctx *ParseContext, value ast.ValueExp
 
 				tvi := TryParseValueInput{
 					Field:      mk,
-					IsNullable: IsFieldNullable(field),
+					IsNullable: fi.nullable,
 					Value:      rel,
 				}
 				var (
@@ -298,15 +294,13 @@ func (b *Interpreter) TryParseSelectorExpr(ctx *ParseContext, value ast.ValueExp
 					return res, ErrInvalidValue
 				}
 
+				fi = b.getFieldInfo(field)
+
 				// Create a field expression and set it as the parent.
 				fe := expr.AcquireFieldSelectorExpr()
 				fe.Message = pt.Message
 				fe.Field = field
-				fc, ok := proto.GetExtension(field.Options(), blockyannotations.E_Complexity).(int64)
-				if !ok {
-					fc = 1
-				}
-				fe.FieldComplexity = fc
+				fe.FieldComplexity = fi.complexity
 				parentFieldX.Traversal = fe
 				parent = fe
 				parentFieldX = fe
@@ -361,15 +355,13 @@ func (b *Interpreter) TryParseSelectorExpr(ctx *ParseContext, value ast.ValueExp
 				return res, ErrFieldNotFound
 			}
 
+			fi = b.getFieldInfo(field)
+
 			// Create a field expression and set it as the parent.
 			fe := expr.AcquireFieldSelectorExpr()
 			fe.Message = msg.Message().(protoreflect.MessageDescriptor)
 			fe.Field = field
-			fc, ok := proto.GetExtension(field.Options(), blockyannotations.E_Complexity).(int64)
-			if !ok {
-				fc = 1
-			}
-			fe.FieldComplexity = fc
+			fe.FieldComplexity = fi.complexity
 
 			// Set up the traversal in the map key parent expression.
 			pt.Traversal = fe

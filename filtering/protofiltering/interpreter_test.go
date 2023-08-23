@@ -726,7 +726,7 @@ func TestInterpreter_Parse(t *testing.T) {
 	}
 }
 
-func errHandler(t *testing.T, filter string, isErr bool) func(position token.Position, msg string) {
+func errHandler(t testing.TB, filter string, isErr bool) func(position token.Position, msg string) {
 	return func(position token.Position, msg string) {
 		if !isErr {
 			t.Errorf("error at position %d: \n%s \n^ Error: %s", position, filter[position:], msg)
@@ -735,17 +735,47 @@ func errHandler(t *testing.T, filter string, isErr bool) func(position token.Pos
 }
 
 func BenchmarkInterpreter_Parse(b *testing.B) {
-	it, err := NewInterpreter(md)
-	if err != nil {
-		b.Fatal(err)
+	benchs := []struct {
+		name    string
+		filter  string
+		isError bool
+	}{
+		{
+			name:   "string field EQ direct",
+			filter: tstStringFieldEqDirect,
+		},
+		{
+			name:   "string field IN array",
+			filter: tstStringFieldInArray,
+		},
+		{
+			name:   "complex expression",
+			filter: tstComplexExpression,
+		},
+		{
+			name:    "i32 invalid value",
+			filter:  `i32 = "invalid"`,
+			isError: true,
+		},
 	}
 
-	for i := 0; i < b.N; i++ {
-		pf, err := it.Parse(tstStringFieldEqDirect)
-		if err != nil {
-			b.Fatal(err)
-		}
-		pf.Free()
+	for _, bc := range benchs {
+		b.Run(bc.name, func(b *testing.B) {
+			it, err := NewInterpreter(md, ErrHandlerOpt(errHandler(b, bc.filter, bc.isError)))
+			if err != nil {
+				b.Fatal(err)
+			}
+
+			for i := 0; i < b.N; i++ {
+				pf, err := it.Parse(bc.filter)
+				if !bc.isError {
+					if err != nil {
+						b.Fatal(err)
+					}
+					pf.Free()
+				}
+			}
+		})
 	}
 }
 
