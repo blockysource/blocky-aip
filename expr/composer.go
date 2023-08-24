@@ -26,7 +26,15 @@ var (
 	ErrComposerEmptySelector = errors.New("empty selector")
 )
 
-// Composer is a expression composer.
+// Composer is an expression composer that can be used to
+// efficiently compose filter expressions.
+// Each composed expression is allocated from the pool,
+// and needs to be released back to the pool after use by
+// calling Free method.
+// If the expression is composed into a larger expression,
+// then the larger expression is responsible for releasing
+// the sub-expression, thus only a single call to Free is
+// required.
 type Composer struct {
 	Desc protoreflect.MessageDescriptor
 }
@@ -163,6 +171,14 @@ func (c *Composer) MustOrderByField(field string, o Order) *OrderByFieldExpr {
 		panic(err)
 	}
 	return oe
+}
+
+// Pagination returns a PaginationExpr that can be used to compose a filter expression.
+func (c *Composer) Pagination(pageSize, skip int32) *PaginationExpr {
+	pe := AcquirePaginationExpr()
+	pe.PageSize = pageSize
+	pe.Skip = skip
+	return pe
 }
 
 func (c *Composer) parseMapValueSelector(selector string) (protoreflect.FieldDescriptor, error) {
