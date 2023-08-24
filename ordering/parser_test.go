@@ -51,7 +51,7 @@ func TestParser_Parse(t *testing.T) {
 				}
 
 				fe := ofe.Field
-				if fe.Field != md.Fields().ByName("i64") {
+				if fe.Field != md.Fields().ByName("i64").Name() {
 					t.Fatalf("expected field 'i64' field but got %s", fe.Field)
 				}
 
@@ -74,7 +74,7 @@ func TestParser_Parse(t *testing.T) {
 				}
 
 				fe := ofe.Field
-				if fe.Field != md.Fields().ByName("i64") {
+				if fe.Field != md.Fields().ByName("i64").Name() {
 					t.Fatalf("expected field 'i64' field but got %s", fe.Field)
 				}
 
@@ -88,7 +88,7 @@ func TestParser_Parse(t *testing.T) {
 				}
 
 				fe = ofe.Field
-				if fe.Field != md.Fields().ByName("float") {
+				if fe.Field != md.Fields().ByName("float").Name() {
 					t.Fatalf("expected field 'float' field but got %s", fe.Field)
 				}
 
@@ -111,7 +111,7 @@ func TestParser_Parse(t *testing.T) {
 				}
 
 				fe := ofe.Field
-				if fe.Field != md.Fields().ByName("i64") {
+				if fe.Field != md.Fields().ByName("i64").Name() {
 					t.Fatalf("expected field 'i64' field but got %s", fe.Field)
 				}
 
@@ -125,7 +125,7 @@ func TestParser_Parse(t *testing.T) {
 				}
 
 				fe = ofe.Field
-				if fe.Field != md.Fields().ByName("float") {
+				if fe.Field != md.Fields().ByName("float").Name() {
 					t.Fatalf("expected field 'float' field but got %s", fe.Field)
 				}
 
@@ -154,7 +154,7 @@ func TestParser_Parse(t *testing.T) {
 				}
 
 				fe := ofe.Field
-				if fe.Field != md.Fields().ByName("sub") {
+				if fe.Field != md.Fields().ByName("sub").Name() {
 					t.Fatalf("expected field 'sub' field but got %s", fe.Field)
 				}
 
@@ -168,7 +168,7 @@ func TestParser_Parse(t *testing.T) {
 					t.Fatalf("expected field selector but got %T", fe.Traversal)
 				}
 
-				if fe.Field != md.Fields().ByName("enum") {
+				if fe.Field != md.Fields().ByName("enum").Name() {
 					t.Fatalf("expected field 'enum' field but got %s", fe.Field)
 				}
 
@@ -200,7 +200,9 @@ func TestParser_Parse(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var p Parser
-			p.Reset(md, ErrHandler(testErrHandler(t, tt.wantErr)))
+			if err := p.Reset(md, ErrHandler(testErrHandler(t, tt.wantErr))); err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
 			got, err := p.Parse(tt.input)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.Parse() error = %v, wantErr %v", err, tt.wantErr)

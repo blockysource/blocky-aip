@@ -126,17 +126,19 @@ func (b *Interpreter) TryParseSelectorExpr(ctx *ParseContext, value ast.ValueExp
 	// If member has only a Value with no Fields, then we should find non message field in the context message descriptor.
 	if len(args) == 0 {
 		fe := expr.AcquireFieldSelectorExpr()
-		fe.Message = ctx.Message
-		fe.Field = field
+		fe.Message = ctx.Message.FullName()
+		fe.Field = field.Name()
 		fe.FieldComplexity = fi.complexity
 		return TryParseValueResult{Expr: fe}, nil
 	}
 
 	root := expr.AcquireFieldSelectorExpr()
-	root.Message = field.Parent().(protoreflect.MessageDescriptor)
-	root.Field = field
+	root.Message = field.Parent().(protoreflect.MessageDescriptor).FullName()
+	root.Field = field.Name()
 	root.FieldComplexity = fi.complexity
 	parentFieldX := root
+	pmd := field.Parent().(protoreflect.MessageDescriptor)
+	pfd := field
 	parent := expr.FilterExpr(root)
 
 	for i := 0; i < len(args); i++ {
@@ -144,39 +146,39 @@ func (b *Interpreter) TryParseSelectorExpr(ctx *ParseContext, value ast.ValueExp
 
 		switch pt := parent.(type) {
 		case *expr.FieldSelectorExpr:
-			if pt.Field.Cardinality() == protoreflect.Repeated && !pt.Field.IsMap() {
+			if pfd.Cardinality() == protoreflect.Repeated && !pfd.IsMap() {
 				// Cannot traverse through repeated fields.
 				var res TryParseValueResult
 				if ctx.ErrHandler != nil {
 					res.ErrPos = rel.Position()
-					res.ErrMsg = fmt.Sprintf("field: %q is a repeated field, cannot get nested field", pt.Field.Name())
+					res.ErrMsg = fmt.Sprintf("field: %q is a repeated field, cannot get nested field", pt.Field)
 				}
 				root.Free()
 				return res, ErrInvalidValue
 			}
 
-			pfi := b.getFieldInfo(pt.Field)
+			pfi := b.getFieldInfo(pfd)
 
 			if pfi.forbidden {
 				// Cannot traverse through fields that forbid filtering.
 				var res TryParseValueResult
 				if ctx.ErrHandler != nil {
 					res.ErrPos = rel.Position()
-					res.ErrMsg = fmt.Sprintf("field: %q forbids filtering, cannot get nested field", pt.Field.Name())
+					res.ErrMsg = fmt.Sprintf("field: %q forbids filtering, cannot get nested field", pt.Field)
 				}
 				root.Free()
 				return res, ErrInvalidValue
 			}
 			// Check if the parent field is a message or a map field.
 			switch {
-			case pt.Field.Kind() == protoreflect.MessageKind && pt.Field.IsMap():
+			case pfd.Kind() == protoreflect.MessageKind && pfd.IsMap():
 				// Previous field was a map key, thus the current field should be a map value.
 				// Thus, current text literal should be a map key.
 				// Get the type of the map key, and try parsing the value expression matching the type.
 				// If the parsing fails, then return error.
 				// If the parsing succeeds, then create a map key expression and set it as the parent.
 
-				mk := pt.Field.MapKey()
+				mk := pfd.MapKey()
 
 				tvi := TryParseValueInput{
 					Field:      mk,
@@ -245,7 +247,7 @@ func (b *Interpreter) TryParseSelectorExpr(ctx *ParseContext, value ast.ValueExp
 				mke.Key = tvr.Expr
 				parentFieldX.Traversal = mke
 				parent = mke
-			case pt.Field.Kind() == protoreflect.MessageKind:
+			case pfd.Kind() == protoreflect.MessageKind:
 				// This is a message, thus we can search for the next field in the message.
 				// Check if the next value is a text literal.
 				tl, ok := rel.(*ast.TextLiteral)
@@ -254,18 +256,18 @@ func (b *Interpreter) TryParseSelectorExpr(ctx *ParseContext, value ast.ValueExp
 					// Traversing through a message fields requires a text literal.
 					if ctx.ErrHandler != nil {
 						res.ErrPos = rel.Position()
-						res.ErrMsg = fmt.Sprintf("field: %q is a message type field, nested field traversal requires text literal", pt.Field.Name())
+						res.ErrMsg = fmt.Sprintf("field: %q is a message type field, nested field traversal requires text literal", pfd.Name())
 					}
 					root.Free()
 					return res, ErrInvalidField
 				}
 
 				// Check if the text literal value is a valid field in the message.
-				field = pt.Message.Fields().ByName(protoreflect.Name(tl.Value))
+				field = pmd.Fields().ByName(protoreflect.Name(tl.Value))
 				if field == nil {
 					// Check if the field might be in the OneOf descriptors.
-					for i := 0; i < pt.Message.Oneofs().Len(); i++ {
-						ood := pt.Message.Oneofs().Get(i)
+					for i := 0; i < pmd.Oneofs().Len(); i++ {
+						ood := pmd.Oneofs().Get(i)
 						field = ood.Fields().ByName(protoreflect.Name(tl.Value))
 						if field != nil {
 							break
@@ -299,18 +301,20 @@ func (b *Interpreter) TryParseSelectorExpr(ctx *ParseContext, value ast.ValueExp
 				// Create a field expression and set it as the parent.
 				fe := expr.AcquireFieldSelectorExpr()
 				fe.Message = pt.Message
-				fe.Field = field
+				fe.Field = field.Name()
 				fe.FieldComplexity = fi.complexity
 				parentFieldX.Traversal = fe
 				parent = fe
 				parentFieldX = fe
+				pfd = field
+				pmd = field.Message()
 			default:
 				// This is not a valid field for traversing.
 				// Mark as an invalid value error.
 				var res TryParseValueResult
 				if ctx.ErrHandler != nil {
 					res.ErrPos = rel.Position()
-					res.ErrMsg = fmt.Sprintf("field: %q is not a message type field, cannot get nested field", pt.Field.Name())
+					res.ErrMsg = fmt.Sprintf("field: %q is not a message type field, cannot get nested field", pt.Field)
 				}
 				root.Free()
 				return res, ErrInvalidValue
@@ -319,12 +323,12 @@ func (b *Interpreter) TryParseSelectorExpr(ctx *ParseContext, value ast.ValueExp
 			// Previous field was a map key, thus the current field should be a map value.
 			// Check if the parent field map value is a message.
 			// If it is, then the current field should be a
-			msg := parentFieldX.Field.MapValue()
+			msg := pfd.MapValue()
 			if msg.Kind() != protoreflect.MessageKind {
 				var res TryParseValueResult
 				if ctx.ErrHandler != nil {
 					res.ErrPos = rel.Position()
-					res.ErrMsg = fmt.Sprintf("field: %q is not a message type field, cannot get nested field", parentFieldX.Field.Name())
+					res.ErrMsg = fmt.Sprintf("field: %q is not a message type field, cannot get nested field", parentFieldX.Field)
 				}
 				root.Free()
 				return res, ErrInvalidValue
@@ -336,7 +340,7 @@ func (b *Interpreter) TryParseSelectorExpr(ctx *ParseContext, value ast.ValueExp
 				var res TryParseValueResult
 				if ctx.ErrHandler != nil {
 					res.ErrPos = rel.Position()
-					res.ErrMsg = fmt.Sprintf("field: %q is a message type field, nested field traversal requires text literal", parentFieldX.Field.Name())
+					res.ErrMsg = fmt.Sprintf("field: %q is a message type field, nested field traversal requires text literal", parentFieldX.Field)
 				}
 				root.Free()
 				return res, ErrInvalidField
@@ -359,8 +363,8 @@ func (b *Interpreter) TryParseSelectorExpr(ctx *ParseContext, value ast.ValueExp
 
 			// Create a field expression and set it as the parent.
 			fe := expr.AcquireFieldSelectorExpr()
-			fe.Message = msg.Message().(protoreflect.MessageDescriptor)
-			fe.Field = field
+			fe.Message = msg.Message().(protoreflect.MessageDescriptor).FullName()
+			fe.Field = field.Name()
 			fe.FieldComplexity = fi.complexity
 
 			// Set up the traversal in the map key parent expression.

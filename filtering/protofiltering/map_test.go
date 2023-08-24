@@ -35,7 +35,7 @@ func testMapStringI32FieldEqDirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("map_str_i32") {
+	if left.Field != md.Fields().ByName("map_str_i32").Name() {
 		t.Fatalf("expected field 'map_str_int' field but got %s", left.Field)
 	}
 
@@ -84,7 +84,7 @@ func testMapStringI64FieldEqDirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("map_str_i64") {
+	if left.Field != md.Fields().ByName("map_str_i64").Name() {
 		t.Fatalf("expected field 'map_str_int' field but got %s", left.Field)
 	}
 
@@ -133,7 +133,7 @@ func testMapStringU32FieldEqDirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("map_str_u32") {
+	if left.Field != md.Fields().ByName("map_str_u32").Name() {
 		t.Fatalf("expected field 'map_str_int' field but got %s", left.Field)
 	}
 
@@ -182,7 +182,7 @@ func testMapStringU64FieldEqDirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("map_str_u64") {
+	if left.Field != md.Fields().ByName("map_str_u64").Name() {
 		t.Fatalf("expected field 'map_str_int' field but got %s", left.Field)
 	}
 
@@ -231,7 +231,7 @@ func testMapStringS32FieldEqDirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("map_str_s32") {
+	if left.Field != md.Fields().ByName("map_str_s32").Name() {
 		t.Fatalf("expected field 'map_str_int' field but got %s", left.Field)
 	}
 
@@ -280,7 +280,7 @@ func testMapStringS64FieldEqDirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("map_str_s64") {
+	if left.Field != md.Fields().ByName("map_str_s64").Name() {
 		t.Fatalf("expected field 'map_str_int' field but got %s", left.Field)
 	}
 

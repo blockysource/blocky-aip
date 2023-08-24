@@ -50,7 +50,7 @@ func TestUnixFunctionCall(t *testing.T) {
 					t.Fatalf("expected value expression but got %T", ce.Left)
 				}
 
-				if left.Field != msgDesc.Fields().ByName("timestamp") {
+				if left.Field != msgDesc.Fields().ByName("timestamp").Name() {
 					t.Fatalf("expected field 'timestamp' field but got %s", left.Field)
 				}
 
@@ -87,7 +87,7 @@ func TestUnixFunctionCall(t *testing.T) {
 					t.Fatalf("expected value expression but got %T", ce.Left)
 				}
 
-				if left.Field != msgDesc.Fields().ByName("timestamp") {
+				if left.Field != msgDesc.Fields().ByName("timestamp").Name() {
 					t.Fatalf("expected field 'timestamp' field but got %s", left.Field)
 				}
 
@@ -105,7 +105,7 @@ func TestUnixFunctionCall(t *testing.T) {
 					t.Fatalf("expected value expression but got %T", right.Arguments[0])
 				}
 
-				if arg.Field != msgDesc.Fields().ByName("i64") {
+				if arg.Field != msgDesc.Fields().ByName("i64").Name() {
 					t.Fatalf("expected field 'i64' field but got %s", arg.Field)
 				}
 			},

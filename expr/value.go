@@ -15,8 +15,17 @@
 package expr
 
 import (
+	"bytes"
+	"encoding/gob"
 	"sync"
+
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
+
+func init() {
+	gob.Register(new(ValueExpr))
+}
 
 var valueExprPool = &sync.Pool{
 	New: func() any {
@@ -64,6 +73,88 @@ type ValueExpr struct {
 	Value any
 
 	isAcquired bool
+}
+
+// Clone returns a copy of the ValueExpr.
+func (x *ValueExpr) Clone() FilterExpr {
+	if x == nil {
+		return nil
+	}
+	clone := AcquireValueExpr()
+
+	switch vt := x.Value.(type) {
+	case protoreflect.Message:
+		clone.Value = proto.Clone(vt.Interface())
+	case proto.Message:
+		clone.Value = proto.Clone(vt)
+	case map[string]any:
+		mp := make(map[string]any, len(vt))
+		for k, v := range vt {
+			mp[k] = v
+		}
+		clone.Value = mp
+	case []byte:
+		cp := make([]byte, len(vt))
+		copy(cp, vt)
+	default:
+		clone.Value = x.Value
+	}
+
+	clone.Value = x.Value
+	return clone
+}
+
+// Equals returns true if the given expression is equal to the current one.
+func (x *ValueExpr) Equals(other FilterExpr) bool {
+	if x == nil || other == nil {
+		return false
+	}
+
+	ov, ok := other.(*ValueExpr)
+	if !ok {
+		return false
+	}
+
+	switch vt := x.Value.(type) {
+	case protoreflect.Message:
+		ovt, ok := ov.Value.(protoreflect.Message)
+		if !ok {
+			return false
+		}
+		return proto.Equal(vt.Interface(), ovt.Interface())
+	case proto.Message:
+		ovt, ok := ov.Value.(proto.Message)
+		if !ok {
+			return false
+		}
+		return proto.Equal(vt, ovt)
+	case map[string]any:
+		ovt, ok := ov.Value.(map[string]any)
+		if !ok {
+			return false
+		}
+		if len(vt) != len(ovt) {
+			return false
+		}
+		for k, v := range vt {
+			ovv, ok := ovt[k]
+			if !ok {
+				return false
+			}
+			if v != ovv {
+				return false
+			}
+		}
+		return true
+	case []byte:
+		ovt, ok := ov.Value.([]byte)
+		if !ok {
+			return false
+		}
+		return bytes.Equal(vt, ovt)
+	default:
+		return x.Value == ov.Value
+	}
 }
 
 // Complexity of the ValueExpr is 1.

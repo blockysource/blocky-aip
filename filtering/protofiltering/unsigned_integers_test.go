@@ -35,7 +35,7 @@ func testU32FieldEQDirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("u32") {
+	if left.Field != md.Fields().ByName("u32").Name() {
 		t.Fatalf("expected field 'u32' field but got %s", left.Field)
 	}
 
@@ -64,7 +64,7 @@ func testU32FieldINArray(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("u32") {
+	if left.Field != md.Fields().ByName("u32").Name() {
 		t.Fatalf("expected field 'u32' field but got %s", left.Field)
 	}
 
@@ -120,7 +120,7 @@ func testU32FieldINArrayIndirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("u32") {
+	if left.Field != md.Fields().ByName("u32").Name() {
 		t.Fatalf("expected field 'u32' field but got %s", left.Field)
 	}
 
@@ -129,7 +129,7 @@ func testU32FieldINArrayIndirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Right)
 	}
 
-	if right.Field != md.Fields().ByName("sub") {
+	if right.Field != md.Fields().ByName("sub").Name() {
 		t.Fatalf("expected field 'sub' field but got %s", right.Field)
 	}
 
@@ -138,7 +138,7 @@ func testU32FieldINArrayIndirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected field selector expression but got %T", right.Traversal)
 	}
 
-	if tf.Field != md.Fields().ByName("rp_u32") {
+	if tf.Field != md.Fields().ByName("rp_u32").Name() {
 		t.Fatalf("expected field 'rp_u32' field but got %s", tf.Field)
 	}
 }
@@ -158,7 +158,7 @@ func testU32FieldEQIndirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("u32") {
+	if left.Field != md.Fields().ByName("u32").Name() {
 		t.Fatalf("expected field 'u32' field but got %s", left.Field)
 	}
 
@@ -167,7 +167,7 @@ func testU32FieldEQIndirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Right)
 	}
 
-	if right.Field != md.Fields().ByName("sub") {
+	if right.Field != md.Fields().ByName("sub").Name() {
 		t.Fatalf("expected field 'sub' field but got %s", right.Field)
 	}
 
@@ -176,7 +176,7 @@ func testU32FieldEQIndirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected field selector expression but got %T", right.Traversal)
 	}
 
-	if tf.Field != md.Fields().ByName("u32") {
+	if tf.Field != md.Fields().ByName("u32").Name() {
 		t.Fatalf("expected field 'u32' field but got %s", tf.Field)
 	}
 }
@@ -196,7 +196,7 @@ func testU64FieldEQDirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("u64") {
+	if left.Field != md.Fields().ByName("u64").Name() {
 		t.Fatalf("expected field 'u64' field but got %s", left.Field)
 	}
 
@@ -225,7 +225,7 @@ func testU64FieldINArray(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("u64") {
+	if left.Field != md.Fields().ByName("u64").Name() {
 		t.Fatalf("expected field 'u64' field but got %s", left.Field)
 	}
 
@@ -281,7 +281,7 @@ func testU64FieldINArrayIndirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("u64") {
+	if left.Field != md.Fields().ByName("u64").Name() {
 		t.Fatalf("expected field 'u64' field but got %s", left.Field)
 	}
 
@@ -290,7 +290,7 @@ func testU64FieldINArrayIndirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Right)
 	}
 
-	if right.Field != md.Fields().ByName("sub") {
+	if right.Field != md.Fields().ByName("sub").Name() {
 		t.Fatalf("expected field 'sub' field but got %s", right.Field)
 	}
 
@@ -299,7 +299,7 @@ func testU64FieldINArrayIndirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected field selector expression but got %T", right.Traversal)
 	}
 
-	if tf.Field != md.Fields().ByName("rp_u64") {
+	if tf.Field != md.Fields().ByName("rp_u64").Name() {
 		t.Fatalf("expected field 'rp_u64' field but got %s", tf.Field)
 	}
 }
@@ -319,7 +319,7 @@ func testU64FieldEQIndirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("u64") {
+	if left.Field != md.Fields().ByName("u64").Name() {
 		t.Fatalf("expected field 'u64' field but got %s", left.Field)
 	}
 
@@ -328,7 +328,7 @@ func testU64FieldEQIndirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Right)
 	}
 
-	if right.Field != md.Fields().ByName("sub") {
+	if right.Field != md.Fields().ByName("sub").Name() {
 		t.Fatalf("expected field 'sub' field but got %s", right.Field)
 	}
 
@@ -337,7 +337,7 @@ func testU64FieldEQIndirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected field selector expression but got %T", right.Traversal)
 	}
 
-	if tf.Field != md.Fields().ByName("u64") {
+	if tf.Field != md.Fields().ByName("u64").Name() {
 		t.Fatalf("expected field 'u64' field but got %s", tf.Field)
 	}
 }
@@ -357,7 +357,7 @@ func testF32FieldEQDirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("f32") {
+	if left.Field != md.Fields().ByName("f32").Name() {
 		t.Fatalf("expected field 'f32' field but got %s", left.Field)
 	}
 
@@ -386,7 +386,7 @@ func testF32FieldINArray(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("f32") {
+	if left.Field != md.Fields().ByName("f32").Name() {
 		t.Fatalf("expected field 'f32' field but got %s", left.Field)
 	}
 
@@ -442,7 +442,7 @@ func testF32FieldINArrayIndirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("f32") {
+	if left.Field != md.Fields().ByName("f32").Name() {
 		t.Fatalf("expected field 'f32' field but got %s", left.Field)
 	}
 
@@ -451,7 +451,7 @@ func testF32FieldINArrayIndirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Right)
 	}
 
-	if right.Field != md.Fields().ByName("sub") {
+	if right.Field != md.Fields().ByName("sub").Name() {
 		t.Fatalf("expected field 'sub' field but got %s", right.Field)
 	}
 
@@ -460,7 +460,7 @@ func testF32FieldINArrayIndirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected field selector expression but got %T", right.Traversal)
 	}
 
-	if tf.Field != md.Fields().ByName("rp_f32") {
+	if tf.Field != md.Fields().ByName("rp_f32").Name() {
 		t.Fatalf("expected field 'rp_f32' field but got %s", tf.Field)
 	}
 }
@@ -480,7 +480,7 @@ func testF32FieldEQIndirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("f32") {
+	if left.Field != md.Fields().ByName("f32").Name() {
 		t.Fatalf("expected field 'f32' field but got %s", left.Field)
 	}
 
@@ -489,7 +489,7 @@ func testF32FieldEQIndirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Right)
 	}
 
-	if right.Field != md.Fields().ByName("sub") {
+	if right.Field != md.Fields().ByName("sub").Name() {
 		t.Fatalf("expected field 'sub' field but got %s", right.Field)
 	}
 
@@ -498,7 +498,7 @@ func testF32FieldEQIndirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected field selector expression but got %T", right.Traversal)
 	}
 
-	if tf.Field != md.Fields().ByName("f32") {
+	if tf.Field != md.Fields().ByName("f32").Name() {
 		t.Fatalf("expected field 'f32' field but got %s", tf.Field)
 	}
 }

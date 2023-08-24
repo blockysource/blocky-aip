@@ -49,7 +49,7 @@ func testMultipleExpressions(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("enum") {
+	if left.Field != md.Fields().ByName("enum").Name() {
 		t.Fatalf("expected field 'enum' field but got %s", left.Field)
 	}
 
@@ -76,7 +76,7 @@ func testMultipleExpressions(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("i64") {
+	if left.Field != md.Fields().ByName("i64").Name() {
 		t.Fatalf("expected field 'i64' field but got %s", left.Field)
 	}
 
@@ -135,7 +135,7 @@ func testComplexExpression(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("enum") {
+	if left.Field != md.Fields().ByName("enum").Name() {
 		t.Fatalf("expected field 'enum' field but got %s", left.Field)
 	}
 
@@ -162,7 +162,7 @@ func testComplexExpression(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("i64") {
+	if left.Field != md.Fields().ByName("i64").Name() {
 		t.Fatalf("expected field 'i64' field but got %s", left.Field)
 	}
 
@@ -207,7 +207,7 @@ func testComplexExpression(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("enum") {
+	if left.Field != md.Fields().ByName("enum").Name() {
 		t.Fatalf("expected field 'enum' field but got %s", left.Field)
 	}
 
@@ -234,7 +234,7 @@ func testComplexExpression(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("i64") {
+	if left.Field != md.Fields().ByName("i64").Name() {
 		t.Fatalf("expected field 'i64' field but got %s", left.Field)
 	}
 
@@ -243,7 +243,7 @@ func testComplexExpression(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Right)
 	}
 
-	if rfe.Field != md.Fields().ByName("sub") {
+	if rfe.Field != md.Fields().ByName("sub").Name() {
 		t.Fatalf("expected field 'i32' field but got %s", rfe.Field)
 	}
 
@@ -252,7 +252,7 @@ func testComplexExpression(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", rfe.Traversal)
 	}
 
-	if rt.Field != md.Fields().ByName("i32") {
+	if rt.Field != md.Fields().ByName("i32").Name() {
 		t.Fatalf("expected field 'i32' field but got %s", rt.Field)
 	}
 
@@ -270,7 +270,7 @@ func testComplexExpression(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("rp_enum") {
+	if left.Field != md.Fields().ByName("rp_enum").Name() {
 		t.Fatalf("expected field 'rp_enum' field but got %s", left.Field)
 	}
 

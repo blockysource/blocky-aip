@@ -35,7 +35,7 @@ func testStringFieldEqDirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("name") {
+	if left.Field != md.Fields().ByName("name").Name() {
 		t.Fatalf("expected field 'name' field but got %s", left.Field)
 	}
 
@@ -64,7 +64,7 @@ func testStringFieldInArray(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("name") {
+	if left.Field != md.Fields().ByName("name").Name() {
 		t.Fatalf("expected field 'name' field but got %s", left.Field)
 	}
 
@@ -111,7 +111,7 @@ func testStringFieldEqIndirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("name") {
+	if left.Field != md.Fields().ByName("name").Name() {
 		t.Fatalf("expected field 'name' field but got %s", left.Field)
 	}
 
@@ -120,7 +120,7 @@ func testStringFieldEqIndirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Right)
 	}
 
-	if right.Field != md.Fields().ByName("str") {
+	if right.Field != md.Fields().ByName("str").Name() {
 		t.Fatalf("expected field 'str' field but got %s", right.Field)
 	}
 }
@@ -140,7 +140,7 @@ func testStringFieldEqStringSearch(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("name") {
+	if left.Field != md.Fields().ByName("name").Name() {
 		t.Fatalf("expected field 'name' field but got %s", left.Field)
 	}
 
@@ -177,7 +177,7 @@ func testStringFieldEqStringSearchPrefix(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("name") {
+	if left.Field != md.Fields().ByName("name").Name() {
 		t.Fatalf("expected field 'name' field but got %s", left.Field)
 	}
 
@@ -214,7 +214,7 @@ func testStringFieldEqStringSearchSuffix(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("name") {
+	if left.Field != md.Fields().ByName("name").Name() {
 		t.Fatalf("expected field 'name' field but got %s", left.Field)
 	}
 
@@ -251,7 +251,7 @@ func testRepeatedStringFieldEqDirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("rp_str") {
+	if left.Field != md.Fields().ByName("rp_str").Name() {
 		t.Fatalf("expected field 'rp_str' field but got %s", left.Field)
 	}
 

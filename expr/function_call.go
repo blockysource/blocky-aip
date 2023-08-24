@@ -15,9 +15,14 @@
 package expr
 
 import (
+	"encoding/gob"
 	"fmt"
 	"sync"
 )
+
+func init() {
+	gob.Register(new(FunctionCallExpr))
+}
 
 var functionCallExprPool = &sync.Pool{
 	New: func() any {
@@ -32,23 +37,6 @@ var functionCallExprPool = &sync.Pool{
 // Once acquired it must be released via Free method.
 func AcquireFunctionCallExpr() *FunctionCallExpr {
 	return functionCallExprPool.Get().(*FunctionCallExpr)
-}
-
-// Free puts the FunctionCallExpr back to the pool.
-func (x *FunctionCallExpr) Free() {
-	if x == nil {
-		return
-	}
-	for _, a := range x.Arguments {
-		a.Free()
-	}
-	if x.isAcquired {
-		x.PkgName = ""
-		x.Name = ""
-		x.CallComplexity = 0
-		x.Arguments = x.Arguments[:0]
-		functionCallExprPool.Put(x)
-	}
 }
 
 var _ FilterExpr = (*FunctionCallExpr)(nil)
@@ -75,6 +63,41 @@ type FunctionCallExpr struct {
 	isAcquired bool
 }
 
+// Clone returns a copy of the current expression.
+func (x *FunctionCallExpr) Clone() FilterExpr {
+	if x == nil {
+		return nil
+	}
+	clone := AcquireFunctionCallExpr()
+	clone.PkgName = x.PkgName
+	clone.Name = x.Name
+	clone.CallComplexity = x.CallComplexity
+	for _, a := range x.Arguments {
+		clone.Arguments = append(clone.Arguments, a.Clone())
+	}
+	return clone
+}
+
+// Equals returns true if the given expression is equal to the current one.
+func (x *FunctionCallExpr) Equals(other FilterExpr) bool {
+	if other == nil {
+		return false
+	}
+	oc, ok := other.(*FunctionCallExpr)
+	if !ok {
+		return false
+	}
+	if x.PkgName != oc.PkgName || x.Name != oc.Name || len(x.Arguments) != len(oc.Arguments) {
+		return false
+	}
+	for i := range x.Arguments {
+		if !x.Arguments[i].Equals(oc.Arguments[i]) {
+			return false
+		}
+	}
+	return true
+}
+
 // Complexity returns the complexity of the expression.
 func (x *FunctionCallExpr) Complexity() int64 {
 	c := x.CallComplexity
@@ -83,6 +106,23 @@ func (x *FunctionCallExpr) Complexity() int64 {
 		c += a.Complexity()
 	}
 	return c + 1
+}
+
+// Free puts the FunctionCallExpr back to the pool.
+func (x *FunctionCallExpr) Free() {
+	if x == nil {
+		return
+	}
+	for _, a := range x.Arguments {
+		a.Free()
+	}
+	if x.isAcquired {
+		x.PkgName = ""
+		x.Name = ""
+		x.CallComplexity = 0
+		x.Arguments = x.Arguments[:0]
+		functionCallExprPool.Put(x)
+	}
 }
 
 func (x *FunctionCallExpr) FullName() string {

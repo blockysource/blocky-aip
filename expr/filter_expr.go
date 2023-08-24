@@ -28,13 +28,11 @@ type FilterExpr interface {
 	// This should release the resource related to the expression back to the pool.
 	Free()
 
+	// Equals returns true if the expression is equal to the other expression.
+	Equals(other FilterExpr) bool
+
+	// Clone returns a copy of the expression.
+	Clone() FilterExpr
+
 	isFilterExpr()
 }
-
-// UndefinedFilterExpr is a filter expression that is undefined.
-// It is used to embed external expressions into the expression tree.
-type UndefinedFilterExpr struct{}
-
-func (UndefinedFilterExpr) Complexity() int64 { return 0 }
-func (UndefinedFilterExpr) Free()             {}
-func (UndefinedFilterExpr) isFilterExpr()     {}

@@ -60,7 +60,7 @@ func (b *Interpreter) HandleRestrictionExpr(ctx *ParseContext, x *ast.Restrictio
 			return res, ErrInternal
 		}
 
-		field, mk, ok := traverseLastFieldExpr(left)
+		field, mk, fd, ok := b.traverseLastFieldExpr(left)
 		if !ok {
 			// The left hand side is not a field selector expression.
 			// This is an internal error.
@@ -71,16 +71,6 @@ func (b *Interpreter) HandleRestrictionExpr(ctx *ParseContext, x *ast.Restrictio
 			}
 			left.Free()
 			return res, ErrInternal
-		}
-
-		if IsFieldFilteringForbidden(field.Field) {
-			var res TryParseValueResult
-			if ctx.ErrHandler != nil {
-				res.ErrPos = xt.Position()
-				res.ErrMsg = fmt.Sprintf("field %s is not filterable", field.Field.FullName())
-			}
-			left.Free()
-			return res, ErrInvalidValue
 		}
 
 		// If the field is a map key and comparator is HAS, check if the right side is a wildcard TEXT literal.
@@ -107,11 +97,10 @@ func (b *Interpreter) HandleRestrictionExpr(ctx *ParseContext, x *ast.Restrictio
 			}
 		}
 
-		fd := field.Field
 		switch {
 		case mk != nil:
 			// If the left-hand side is a map key expr, set the field descriptor as map value.
-			fd = field.Field.MapValue()
+			fd = fd.MapValue()
 		case fd.Kind() == protoreflect.MessageKind && fd.IsMap() && cmp == expr.HAS:
 			fd = fd.MapKey()
 		}
@@ -144,7 +133,7 @@ func (b *Interpreter) HandleRestrictionExpr(ctx *ParseContext, x *ast.Restrictio
 				}
 
 				// Check if traversal of the right hand side types matches the left hand side types.
-				rightField, rmk, ok := traverseLastFieldExpr(right.Expr)
+				_, rmk, rd, ok := b.traverseLastFieldExpr(right.Expr)
 				if !ok {
 					// The right hand side is not a field selector expression.
 					// This is an internal error.
@@ -158,8 +147,8 @@ func (b *Interpreter) HandleRestrictionExpr(ctx *ParseContext, x *ast.Restrictio
 					return res, ErrInternal
 				}
 
-				lf := field.Field
-				rf := rightField.Field
+				lf := fd
+				rf := rd
 
 				// Check the ambiguity of the left and right hand side.
 				// This means that the left hand side ie equal to the right hand side directly.
@@ -181,10 +170,10 @@ func (b *Interpreter) HandleRestrictionExpr(ctx *ParseContext, x *ast.Restrictio
 				switch {
 				case mk != nil:
 					// If the left-hand side is a map key expr, set the field descriptor as map value.
-					lf = field.Field.MapValue()
+					lf = fd.MapValue()
 				case rmk != nil:
 					// If the right-hand side is a map key expr, set the field descriptor as map value.
-					rf = rightField.Field.MapValue()
+					rf = rd.MapValue()
 				case lf.Kind() == protoreflect.MessageKind && lf.IsMap():
 					// If the left-hand side is a map, set the field descriptor as map key.
 					leftIsMapKey = true
@@ -270,9 +259,9 @@ func (b *Interpreter) HandleRestrictionExpr(ctx *ParseContext, x *ast.Restrictio
 						var res TryParseValueResult
 						if ctx.ErrHandler != nil {
 							// Invalid value.
-							ctx.ErrHandler(x.Comparator.Position(), fmt.Sprintf("cannot compare a repeated field: %s with a non-repeated field: %s with a comparator: %s", rf.FullName(), field.Field.FullName(), x.Comparator.String()))
+							ctx.ErrHandler(x.Comparator.Position(), fmt.Sprintf("cannot compare a repeated field: %s with a non-repeated field: %s with a comparator: %s", rf.FullName(), field.Field, x.Comparator.String()))
 							res.ErrPos = x.Comparator.Position()
-							res.ErrMsg = fmt.Sprintf("cannot compare a repeated field: %s with a non-repeated field: %s with a comparator: %s", rf.FullName(), field.Field.FullName(), x.Comparator.String())
+							res.ErrMsg = fmt.Sprintf("cannot compare a repeated field: %s with a non-repeated field: %s with a comparator: %s", rf.FullName(), field.Field, x.Comparator.String())
 						}
 						right.Expr.Free()
 						left.Free()
@@ -391,11 +380,11 @@ func (b *Interpreter) HandleRestrictionExpr(ctx *ParseContext, x *ast.Restrictio
 		case *expr.ValueExpr:
 			// The right hand side is a value expression,
 			// if the left hand side is a map key or a repeated field, the operator must be HAS.
-			if (mk != nil || field.Field.Cardinality() == protoreflect.Repeated) && cmp != expr.HAS {
+			if (mk != nil || fd.Cardinality() == protoreflect.Repeated) && cmp != expr.HAS {
 				var res TryParseValueResult
 				if ctx.ErrHandler != nil {
 					res.ErrPos = x.Comparator.Position()
-					res.ErrMsg = fmt.Sprintf("cannot compare a repeated field: %s with a comparator: %s", field.Field.FullName(), x.Comparator.String())
+					res.ErrMsg = fmt.Sprintf("cannot compare a repeated field: %s with a comparator: %s", field.Field, x.Comparator.String())
 				}
 				left.Free()
 				vt.Free()
@@ -410,7 +399,7 @@ func (b *Interpreter) HandleRestrictionExpr(ctx *ParseContext, x *ast.Restrictio
 				var res TryParseValueResult
 				if ctx.ErrHandler != nil {
 					res.ErrPos = x.Comparator.Position()
-					res.ErrMsg = fmt.Sprintf("cannot compare a repeated field: %s with a comparator: %s", field.Field.FullName(), x.Comparator.String())
+					res.ErrMsg = fmt.Sprintf("cannot compare a repeated field: %s with a comparator: %s", field.Field, x.Comparator.String())
 				}
 				left.Free()
 				vt.Free()
@@ -423,7 +412,7 @@ func (b *Interpreter) HandleRestrictionExpr(ctx *ParseContext, x *ast.Restrictio
 				var res TryParseValueResult
 				if ctx.ErrHandler != nil {
 					res.ErrPos = x.Arg.Position()
-					res.ErrMsg = fmt.Sprintf("cannot compare a map with a non map field: %s", field.Field.FullName())
+					res.ErrMsg = fmt.Sprintf("cannot compare a map with a non map field: %s", field.Field)
 				}
 				left.Free()
 				vt.Free()
@@ -705,7 +694,7 @@ func (b *Interpreter) HandleRestrictionExpr(ctx *ParseContext, x *ast.Restrictio
 				}
 
 				// Check if traversal of the right hand side types matches the left hand side types.
-				rightField, rmk, ok := traverseLastFieldExpr(right.Expr)
+				_, rmk, rd, ok := b.traverseLastFieldExpr(right.Expr)
 				if !ok {
 					// The right hand side is not a field selector expression.
 					// This is an internal error.
@@ -720,12 +709,12 @@ func (b *Interpreter) HandleRestrictionExpr(ctx *ParseContext, x *ast.Restrictio
 				}
 
 				lf := fn.Returning
-				rf := rightField.Field
+				rf := rd
 
 				switch {
 				case rmk != nil:
 					// If the right-hand side is a map key expr, set the field descriptor as map value.
-					rf = rightField.Field.MapValue()
+					rf = rd.MapValue()
 				case rf.Kind() == protoreflect.MessageKind && rf.IsMap():
 					// If the right-hand side is a map, set the field descriptor as map key.
 					rf = rf.MapKey()
@@ -1037,28 +1026,46 @@ func parseComparator(in *ast.ComparatorLiteral) (expr.Comparator, bool) {
 	return comp, true
 }
 
-func traverseLastFieldExpr(in expr.FilterExpr) (*expr.FieldSelectorExpr, *expr.MapKeyExpr, bool) {
+func (b *Interpreter) traverseLastFieldExpr(in expr.FilterExpr) (*expr.FieldSelectorExpr, *expr.MapKeyExpr, protoreflect.FieldDescriptor, bool) {
 	var (
 		fe *expr.FieldSelectorExpr
 		mk *expr.MapKeyExpr
 	)
 	e := in
+	md := b.msg
+	var fd protoreflect.FieldDescriptor
 	for {
 		switch xt := e.(type) {
 		case *expr.FieldSelectorExpr:
 			fe = xt
-			if xt.Traversal == nil {
-				return fe, nil, true
+			fd = md.Fields().ByName(xt.Field)
+			if fd == nil {
+				for i := 0; i < md.Oneofs().Len(); i++ {
+					of := md.Oneofs().Get(i)
+					fd = of.Fields().ByName(xt.Field)
+					if fd != nil {
+						break
+					}
+				}
+				if fd == nil {
+					panic(fmt.Sprintf("field: %s not found in message: %s", xt.Field, md.FullName()))
+				}
 			}
+			if xt.Traversal == nil {
+				return fe, nil, fd, true
+			}
+			md = fd.Message()
 			e = xt.Traversal
 		case *expr.MapKeyExpr:
 			if xt.Traversal == nil {
-				return fe, xt, true
+				return fe, xt, fd, true
 			}
 			mk = xt
+			// fd = fd.MapValue()
+			// md = fd.Message()
 			e = xt.Traversal
 		default:
-			return fe, mk, true
+			return fe, mk, fd, true
 		}
 	}
 }

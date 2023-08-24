@@ -130,4 +130,27 @@ message Message {
   google.protobuf.Struct struct_null = 81 [(blocky.api.query_opt) = NULLABLE];
   Enum enum_null = 82 [(blocky.api.query_opt) = NULLABLE];
   Message msg_null = 83 [(blocky.api.query_opt) = NULLABLE];
+
+  oneof oneof {
+    string oneof_str = 84;
+    int32 oneof_i32 = 85;
+    int64 oneof_i64 = 86;
+    uint32 oneof_u32 = 87;
+    uint64 oneof_u64 = 88;
+    sint32 oneof_s32 = 89;
+    sint64 oneof_s64 = 90;
+    fixed32 oneof_f32 = 91;
+    fixed64 oneof_f64 = 92;
+    sfixed32 oneof_sf32 = 93;
+    sfixed64 oneof_sf64 = 94;
+    bool oneof_bool = 95;
+    bytes oneof_bytes = 96;
+    float oneof_float = 97;
+    double oneof_double = 98;
+    google.protobuf.Timestamp oneof_timestamp = 99;
+    google.protobuf.Duration oneof_duration = 100;
+    google.protobuf.Struct oneof_struct = 101;
+    Enum oneof_enum = 102;
+    Message oneof_msg = 103;
+  }
 }

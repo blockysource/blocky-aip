@@ -37,7 +37,7 @@ func testEnumFieldEQDirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("enum") {
+	if left.Field != md.Fields().ByName("enum").Name() {
 		t.Fatalf("expected field 'enum' field but got %s", left.Field)
 	}
 
@@ -66,7 +66,7 @@ func testEnumFieldEQIndirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("enum") {
+	if left.Field != md.Fields().ByName("enum").Name() {
 		t.Fatalf("expected field 'enum' field but got %s", left.Field)
 	}
 
@@ -75,7 +75,7 @@ func testEnumFieldEQIndirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Right)
 	}
 
-	if right.Field != md.Fields().ByName("sub") {
+	if right.Field != md.Fields().ByName("sub").Name() {
 		t.Fatalf("expected field 'sub' field but got %s", right.Field)
 	}
 
@@ -84,7 +84,7 @@ func testEnumFieldEQIndirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", right.Traversal)
 	}
 
-	if tr.Field != md.Fields().ByName("enum") {
+	if tr.Field != md.Fields().ByName("enum").Name() {
 		t.Fatalf("expected field 'enum' field but got %s", tr.Field)
 	}
 }
@@ -104,7 +104,7 @@ func testEnumFieldInArrayDirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("enum") {
+	if left.Field != md.Fields().ByName("enum").Name() {
 		t.Fatalf("expected field 'enum' field but got %s", left.Field)
 	}
 
@@ -141,7 +141,7 @@ func testEnumFieldInArrayIndirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("enum") {
+	if left.Field != md.Fields().ByName("enum").Name() {
 		t.Fatalf("expected field 'enum' field but got %s", left.Field)
 	}
 
@@ -150,7 +150,7 @@ func testEnumFieldInArrayIndirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Right)
 	}
 
-	if right.Field != md.Fields().ByName("rp_enum") {
+	if right.Field != md.Fields().ByName("rp_enum").Name() {
 		t.Fatalf("expected field 'rp_enum' field but got %s", right.Field)
 	}
 }

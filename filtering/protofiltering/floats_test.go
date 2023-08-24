@@ -35,7 +35,7 @@ func testFloatFieldEQDirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("float") {
+	if left.Field != md.Fields().ByName("float").Name() {
 		t.Fatalf("expected field 'float' field but got %s", left.Field)
 	}
 
@@ -64,7 +64,7 @@ func testFloatFieldEQIndirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("float") {
+	if left.Field != md.Fields().ByName("float").Name() {
 		t.Fatalf("expected field 'float' field but got %s", left.Field)
 	}
 
@@ -73,7 +73,7 @@ func testFloatFieldEQIndirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Right)
 	}
 
-	if right.Field != md.Fields().ByName("sub") {
+	if right.Field != md.Fields().ByName("sub").Name() {
 		t.Fatalf("expected field 'sub' field but got %s", right.Field)
 	}
 
@@ -82,7 +82,7 @@ func testFloatFieldEQIndirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", right.Traversal)
 	}
 
-	if tr.Field != md.Fields().ByName("float") {
+	if tr.Field != md.Fields().ByName("float").Name() {
 		t.Fatalf("expected field 'float' field but got %s", tr.Field)
 	}
 }
@@ -102,7 +102,7 @@ func testFloatFieldINArrayDirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("float") {
+	if left.Field != md.Fields().ByName("float").Name() {
 		t.Fatalf("expected field 'float' field but got %s", left.Field)
 	}
 
@@ -149,7 +149,7 @@ func testFloatFieldINArrayIndirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("float") {
+	if left.Field != md.Fields().ByName("float").Name() {
 		t.Fatalf("expected field 'float' field but got %s", left.Field)
 	}
 
@@ -158,7 +158,7 @@ func testFloatFieldINArrayIndirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Right)
 	}
 
-	if right.Field != md.Fields().ByName("rp_float") {
+	if right.Field != md.Fields().ByName("rp_float").Name() {
 		t.Fatalf("expected field 'rp_float' field but got %s", right.Field)
 	}
 }
@@ -178,7 +178,7 @@ func testFloadFieldEQNegative(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("float") {
+	if left.Field != md.Fields().ByName("float").Name() {
 		t.Fatalf("expected field 'float' field but got %s", left.Field)
 	}
 
@@ -207,7 +207,7 @@ func testDoubleFieldEQDirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("double") {
+	if left.Field != md.Fields().ByName("double").Name() {
 		t.Fatalf("expected field 'double' field but got %s", left.Field)
 	}
 
@@ -236,7 +236,7 @@ func testDoubleFieldEQIndirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("double") {
+	if left.Field != md.Fields().ByName("double").Name() {
 		t.Fatalf("expected field 'double' field but got %s", left.Field)
 	}
 
@@ -245,7 +245,7 @@ func testDoubleFieldEQIndirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Right)
 	}
 
-	if right.Field != md.Fields().ByName("sub") {
+	if right.Field != md.Fields().ByName("sub").Name() {
 		t.Fatalf("expected field 'sub' field but got %s", right.Field)
 	}
 
@@ -254,7 +254,7 @@ func testDoubleFieldEQIndirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", right.Traversal)
 	}
 
-	if tr.Field != md.Fields().ByName("double") {
+	if tr.Field != md.Fields().ByName("double").Name() {
 		t.Fatalf("expected field 'double' field but got %s", tr.Field)
 	}
 }
@@ -274,7 +274,7 @@ func testDoubleFieldINArrayDirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("double") {
+	if left.Field != md.Fields().ByName("double").Name() {
 		t.Fatalf("expected field 'double' field but got %s", left.Field)
 	}
 
@@ -321,7 +321,7 @@ func testDoubleFieldINArrayIndirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("double") {
+	if left.Field != md.Fields().ByName("double").Name() {
 		t.Fatalf("expected field 'double' field but got %s", left.Field)
 	}
 
@@ -330,7 +330,7 @@ func testDoubleFieldINArrayIndirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Right)
 	}
 
-	if right.Field != md.Fields().ByName("rp_double") {
+	if right.Field != md.Fields().ByName("rp_double").Name() {
 		t.Fatalf("expected field 'rp_double' field but got %s", right.Field)
 	}
 }
@@ -350,7 +350,7 @@ func testDoubleFieldEQNegative(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("double") {
+	if left.Field != md.Fields().ByName("double").Name() {
 		t.Fatalf("expected field 'double' field but got %s", left.Field)
 	}
 

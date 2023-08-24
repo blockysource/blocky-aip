@@ -35,7 +35,7 @@ func testBoolFieldEQDirectTrue(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("bool") {
+	if left.Field != md.Fields().ByName("bool").Name() {
 		t.Fatalf("expected field 'bool' field but got %s", left.Field)
 	}
 
@@ -64,7 +64,7 @@ func testBoolFieldEQDirectFalse(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("bool") {
+	if left.Field != md.Fields().ByName("bool").Name() {
 		t.Fatalf("expected field 'bool' field but got %s", left.Field)
 	}
 
@@ -93,7 +93,7 @@ func testBoolFieldEQIndirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("bool") {
+	if left.Field != md.Fields().ByName("bool").Name() {
 		t.Fatalf("expected field 'bool' field but got %s", left.Field)
 	}
 
@@ -102,7 +102,7 @@ func testBoolFieldEQIndirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Right)
 	}
 
-	if right.Field != md.Fields().ByName("sub") {
+	if right.Field != md.Fields().ByName("sub").Name() {
 		t.Fatalf("expected field 'sub' field but got %s", right.Field)
 	}
 
@@ -111,7 +111,7 @@ func testBoolFieldEQIndirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", right.Traversal)
 	}
 
-	if tr.Field != md.Fields().ByName("bool") {
+	if tr.Field != md.Fields().ByName("bool").Name() {
 		t.Fatalf("expected field 'bool' field but got %s", tr.Field)
 	}
 }

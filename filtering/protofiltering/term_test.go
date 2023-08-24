@@ -44,7 +44,7 @@ func testTermWithNOTKeyword(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("enum") {
+	if left.Field != md.Fields().ByName("enum").Name() {
 		t.Fatalf("expected field 'enum' field but got %s", left.Field)
 	}
 
@@ -85,7 +85,7 @@ func testTermWithNOTKeywordAndParentheses(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("enum") {
+	if left.Field != md.Fields().ByName("enum").Name() {
 		t.Fatalf("expected field 'enum' field but got %s", left.Field)
 	}
 

@@ -15,8 +15,14 @@
 package expr
 
 import (
+	"encoding/gob"
 	"sync"
 )
+
+func init() {
+	gob.Register(new(OrderByExpr))
+	gob.Register(new(OrderByFieldExpr))
+}
 
 var (
 	orderExprPool = &sync.Pool{
@@ -49,6 +55,29 @@ type OrderByExpr struct {
 	isAcquired bool
 }
 
+// Merge merges the other OrderByExpr into the current one.
+// If the field is already present, it is skipped and not added.
+// The other OrderByExpr is not modified and is safe to use or Free after the merge.
+func (o *OrderByExpr) Merge(other *OrderByExpr) {
+	// Verify if no duplicated fields are present.
+	ln := len(o.Fields)
+	for _, field := range other.Fields {
+		foundIndex := -1
+		for i := 0; i < ln-1; i++ {
+			f := o.Fields[i]
+			if f.Field.Equals(field.Field) {
+				foundIndex = i
+
+				break
+			}
+		}
+		if foundIndex == -1 {
+			// Clone the field and add it to the list.
+			o.Fields = append(o.Fields, field.Clone())
+		}
+	}
+}
+
 // Free puts the OrderByExpr back to the pool.
 func (o *OrderByExpr) Free() {
 	if o == nil {
@@ -77,6 +106,24 @@ func (o *OrderByExpr) Complexity() int64 {
 
 func (o *OrderByExpr) isOrderExpr() {}
 
+// Equals returns true if the given expression is equal to the current one.
+func (o *OrderByExpr) Equals(order *OrderByExpr) bool {
+	if o == nil || order == nil {
+		return false
+	}
+
+	if len(o.Fields) != len(order.Fields) {
+		return false
+	}
+
+	for i := range o.Fields {
+		if !o.Fields[i].Equals(order.Fields[i]) {
+			return false
+		}
+	}
+	return true
+}
+
 // AcquireOrderByFieldExpr acquires an OrderByFieldExpr from the pool.
 func AcquireOrderByFieldExpr() *OrderByFieldExpr {
 	return orderFieldExprPool.Get().(*OrderByFieldExpr)
@@ -92,6 +139,25 @@ type OrderByFieldExpr struct {
 	Order Order
 
 	isAcquired bool
+}
+
+// Clone returns a copy of the OrderByFieldExpr.
+func (o *OrderByFieldExpr) Clone() *OrderByFieldExpr {
+	if o == nil {
+		return nil
+	}
+	clone := AcquireOrderByFieldExpr()
+	clone.Field = o.Field.Clone().(*FieldSelectorExpr)
+	clone.Order = o.Order
+	return clone
+}
+
+// Equals returns true if the given expression is equal to the current one.
+func (o *OrderByFieldExpr) Equals(other *OrderByFieldExpr) bool {
+	if o == nil || other == nil {
+		return false
+	}
+	return o.Field.Equals(other.Field) && o.Order == other.Order
 }
 
 // Free puts the OrderByFieldExpr back to the pool.

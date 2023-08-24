@@ -15,8 +15,13 @@
 package expr
 
 import (
+	"encoding/gob"
 	"sync"
 )
+
+func init() {
+	gob.Register(ArrayExpr{})
+}
 
 var arrayExprPool = &sync.Pool{
 	New: func() any {
@@ -53,6 +58,41 @@ type ArrayExpr struct {
 	Elements []FilterExpr
 
 	isAcquired bool
+}
+
+// Clone returns a copy of the ArrayExpr.
+func (e *ArrayExpr) Clone() FilterExpr {
+	if e == nil {
+		return nil
+	}
+	clone := AcquireArrayExpr()
+	for _, expr := range e.Elements {
+		clone.Elements = append(clone.Elements, expr.Clone())
+	}
+	return clone
+}
+
+// Equals returns true if the given expression is equal to the current one.
+func (e *ArrayExpr) Equals(other FilterExpr) bool {
+	if other == nil {
+		return false
+	}
+
+	oa, ok := other.(*ArrayExpr)
+	if !ok {
+		return false
+	}
+
+	if len(e.Elements) != len(oa.Elements) {
+		return false
+	}
+
+	for i, expr := range e.Elements {
+		if !expr.Equals(oa.Elements[i]) {
+			return false
+		}
+	}
+	return true
 }
 
 // Complexity of the ArrayExpr is the number of values + 1.

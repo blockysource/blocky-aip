@@ -22,7 +22,7 @@ func testDurationFieldEQDirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("duration") {
+	if left.Field != md.Fields().ByName("duration").Name() {
 		t.Fatalf("expected field 'duration' field but got %s", left.Field)
 	}
 
@@ -56,7 +56,7 @@ func testDurationFieldEQIndirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("duration") {
+	if left.Field != md.Fields().ByName("duration").Name() {
 		t.Fatalf("expected field 'duration' field but got %s", left.Field)
 	}
 
@@ -70,7 +70,7 @@ func testDurationFieldEQIndirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", right.Traversal)
 	}
 
-	if rt.Field != md.Fields().ByName("duration") {
+	if rt.Field != md.Fields().ByName("duration").Name() {
 		t.Fatalf("expected field 'duration' field but got %s", rt.Field)
 	}
 }
@@ -90,7 +90,7 @@ func testDurationFieldGEDirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("duration") {
+	if left.Field != md.Fields().ByName("duration").Name() {
 		t.Fatalf("expected field 'duration' field but got %s", left.Field)
 	}
 
@@ -124,7 +124,7 @@ func testDurationFieldEQFractalDirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("duration") {
+	if left.Field != md.Fields().ByName("duration").Name() {
 		t.Fatalf("expected field 'duration' field but got %s", left.Field)
 	}
 
@@ -158,7 +158,7 @@ func testDurationFieldEQStructDirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("duration") {
+	if left.Field != md.Fields().ByName("duration").Name() {
 		t.Fatalf("expected field 'duration' field but got %s", left.Field)
 	}
 
@@ -192,7 +192,7 @@ func testDurationFieldINArrayDirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("duration") {
+	if left.Field != md.Fields().ByName("duration").Name() {
 		t.Fatalf("expected field 'duration' field but got %s", left.Field)
 	}
 
@@ -246,7 +246,7 @@ func testMapStringDurationFieldHasDirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("map_str_duration") {
+	if left.Field != md.Fields().ByName("map_str_duration").Name() {
 		t.Fatalf("expected field 'map_str_duration' field but got %s", left.Field)
 	}
 
@@ -296,7 +296,7 @@ func testRepeatedDurationHasDirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("rp_duration") {
+	if left.Field != md.Fields().ByName("rp_duration").Name() {
 		t.Fatalf("expected field 'rp_duration' field but got %s", left.Field)
 	}
 

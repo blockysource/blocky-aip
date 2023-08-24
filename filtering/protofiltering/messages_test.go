@@ -38,7 +38,7 @@ func testMsgFieldEQDirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("sub") {
+	if left.Field != md.Fields().ByName("sub").Name() {
 		t.Fatalf("expected field 'msg' field but got %s", left.Field)
 	}
 
@@ -106,7 +106,7 @@ func testMsgFieldEQIndirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("sub") {
+	if left.Field != md.Fields().ByName("sub").Name() {
 		t.Fatalf("expected field 'msg' field but got %s", left.Field)
 	}
 
@@ -115,7 +115,7 @@ func testMsgFieldEQIndirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Right)
 	}
 
-	if right.Field != md.Fields().ByName("sub") {
+	if right.Field != md.Fields().ByName("sub").Name() {
 		t.Fatalf("expected field 'msg' field but got %s", right.Field)
 	}
 }
@@ -135,7 +135,7 @@ func testMsgFieldEQDirectUnnamed(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("sub") {
+	if left.Field != md.Fields().ByName("sub").Name() {
 		t.Fatalf("expected field 'msg' field but got %s", left.Field)
 	}
 

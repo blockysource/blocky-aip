@@ -15,8 +15,13 @@
 package expr
 
 import (
+	"encoding/gob"
 	"sync"
 )
+
+func init() {
+	gob.Register(new(OrExpr))
+}
 
 var orExprPool = &sync.Pool{
 	New: func() any {
@@ -31,6 +36,51 @@ var orExprPool = &sync.Pool{
 // Once acquired it must be released via Free method.
 func AcquireOrExpr() *OrExpr {
 	return orExprPool.Get().(*OrExpr)
+}
+
+var _ FilterExpr = (*OrExpr)(nil)
+
+// OrExpr is an expression that envelops multiple expressions
+// into a logical OR group.
+type OrExpr struct {
+	// Expr is a list of expressions to be evaluated.
+	Expr []FilterExpr
+
+	isAcquired bool
+}
+
+// Clone returns a copy of the current expression.
+func (e *OrExpr) Clone() FilterExpr {
+	if e == nil {
+		return nil
+	}
+
+	clone := AcquireOrExpr()
+	for _, expr := range e.Expr {
+		clone.Expr = append(clone.Expr, expr.Clone())
+	}
+	return clone
+}
+
+// Equals returns true if the given expression is equal to the current one.
+func (e *OrExpr) Equals(other FilterExpr) bool {
+	if e == nil || other == nil {
+		return false
+	}
+
+	if oc, ok := other.(*OrExpr); ok {
+		if len(e.Expr) != len(oc.Expr) {
+			return false
+		}
+		for i, expr := range e.Expr {
+			if !expr.Equals(oc.Expr[i]) {
+				return false
+			}
+		}
+		return true
+	}
+
+	return false
 }
 
 // Free puts the OrExpr back to the pool.
@@ -48,17 +98,6 @@ func (e *OrExpr) Free() {
 	}
 	e.Expr = e.Expr[:0]
 	orExprPool.Put(e)
-}
-
-var _ FilterExpr = (*OrExpr)(nil)
-
-// OrExpr is an expression that envelops multiple expressions
-// into a logical OR group.
-type OrExpr struct {
-	// Expr is a list of expressions to be evaluated.
-	Expr []FilterExpr
-
-	isAcquired bool
 }
 
 // Complexity of the OrExpr is the product of complexities of the inner expressions + 1.

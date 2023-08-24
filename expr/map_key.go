@@ -15,8 +15,13 @@
 package expr
 
 import (
+	"encoding/gob"
 	"sync"
 )
+
+func init() {
+	gob.Register(new(MapKeyExpr))
+}
 
 var mapKeyExprPool = &sync.Pool{
 	New: func() any {
@@ -64,6 +69,44 @@ type MapKeyExpr struct {
 	Traversal FilterExpr
 
 	isAcquired bool
+}
+
+// Clone returns a copy of the MapKeyExpr.
+func (e *MapKeyExpr) Clone() FilterExpr {
+	if e == nil {
+		return nil
+	}
+
+	mk := AcquireMapKeyExpr()
+	if e.Key != nil {
+		mk.Key = e.Key.Clone()
+	}
+
+	if e.Traversal != nil {
+		mk.Traversal = e.Traversal.Clone()
+	}
+	return mk
+}
+
+// Equals returns true if the given expression is equal to the current one.
+func (e *MapKeyExpr) Equals(other FilterExpr) bool {
+	if e == nil || other == nil {
+		return false
+	}
+	om, ok := other.(*MapKeyExpr)
+	if !ok {
+		return false
+	}
+
+	if e.Key != nil && !e.Key.Equals(om.Key) {
+		return false
+	}
+
+	if e.Traversal != nil && !e.Traversal.Equals(om.Traversal) {
+		return false
+	}
+
+	return true
 }
 
 // Complexity returns the complexity of the expression.

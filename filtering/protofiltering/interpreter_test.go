@@ -695,6 +695,11 @@ func TestInterpreter_Parse(t *testing.T) {
 			filter:  tstComplexExpression,
 			checkFn: testComplexExpression,
 		},
+		{
+			name: "one of i32 EQ direct",
+			filter: tstOneOfI32FieldEQDirect,
+			checkFn: testOneOfI32FieldEQDirect,
+		},
 	}
 	for _, tt := range tc {
 		t.Run(tt.name, func(t *testing.T) {
@@ -757,6 +762,7 @@ func BenchmarkInterpreter_Parse(b *testing.B) {
 			filter:  `i32 = "invalid"`,
 			isError: true,
 		},
+
 	}
 
 	for _, bc := range benchs {
@@ -793,7 +799,7 @@ func testIndirectFields(f1, f2 string) func(t *testing.T, x expr.FilterExpr) {
 			t.Fatalf("expected value expression but got %T", ce.Left)
 		}
 
-		if left.Field != md.Fields().ByName(protoreflect.Name(f1)) {
+		if left.Field != md.Fields().ByName(protoreflect.Name(f1)).Name() {
 			t.Fatalf("expected field '%s' field but got %s", f1, left.Field)
 		}
 
@@ -802,7 +808,7 @@ func testIndirectFields(f1, f2 string) func(t *testing.T, x expr.FilterExpr) {
 			t.Fatalf("expected value expression but got %T", ce.Right)
 		}
 
-		if right.Field != md.Fields().ByName(protoreflect.Name(f2)) {
+		if right.Field != md.Fields().ByName(protoreflect.Name(f2)).Name() {
 			t.Fatalf("expected field '%s' field but got %s", f2, right.Field)
 		}
 	}

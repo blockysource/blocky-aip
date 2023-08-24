@@ -36,7 +36,7 @@ func testTimestampFieldEQDirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("timestamp") {
+	if left.Field != md.Fields().ByName("timestamp").Name() {
 		t.Fatalf("expected field 'timestamp' field but got %s", left.Field)
 	}
 
@@ -75,7 +75,7 @@ func testTimestampFieldEQIndirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("timestamp") {
+	if left.Field != md.Fields().ByName("timestamp").Name() {
 		t.Fatalf("expected field 'timestamp' field but got %s", left.Field)
 	}
 
@@ -89,7 +89,7 @@ func testTimestampFieldEQIndirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", right.Traversal)
 	}
 
-	if rt.Field != md.Fields().ByName("timestamp") {
+	if rt.Field != md.Fields().ByName("timestamp").Name() {
 		t.Fatalf("expected field 'timestamp' field but got %s", right.Field)
 	}
 }
@@ -109,7 +109,7 @@ func testTimestampFieldInArrayDirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("timestamp") {
+	if left.Field != md.Fields().ByName("timestamp").Name() {
 		t.Fatalf("expected field 'timestamp' field but got %s", left.Field)
 	}
 

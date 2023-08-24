@@ -15,8 +15,13 @@
 package expr
 
 import (
+	"encoding/gob"
 	"sync"
 )
+
+func init() {
+	gob.Register(new(CompositeExpr))
+}
 
 var compositeExprPool = &sync.Pool{
 	New: func() any {
@@ -32,6 +37,40 @@ func AcquireCompositeExpr() *CompositeExpr {
 	return compositeExprPool.Get().(*CompositeExpr)
 }
 
+var _ FilterExpr = (*CompositeExpr)(nil)
+
+// CompositeExpr is a composite expression that wraps current expression into logical group.
+type CompositeExpr struct {
+	// Expr is the expression to wrap.
+	Expr FilterExpr
+
+	isAcquired bool
+}
+
+// Clone returns a copy of the current expression.
+func (e *CompositeExpr) Clone() FilterExpr {
+	if e == nil {
+		return nil
+	}
+
+	clone := AcquireCompositeExpr()
+	if e.Expr != nil {
+		clone.Expr = e.Expr.Clone()
+	}
+	return clone
+}
+
+// Equals returns true if the given expression is equal to the current one.
+func (e *CompositeExpr) Equals(other FilterExpr) bool {
+	if e == nil || other == nil {
+		return false
+	}
+	if oc, ok := other.(*CompositeExpr); ok {
+		return e.Expr.Equals(oc.Expr)
+	}
+	return false
+}
+
 // Free puts the CompositeExpr back to the pool.
 func (e *CompositeExpr) Free() {
 	if e == nil {
@@ -44,16 +83,6 @@ func (e *CompositeExpr) Free() {
 	if e.isAcquired {
 		compositeExprPool.Put(e)
 	}
-}
-
-var _ FilterExpr = (*CompositeExpr)(nil)
-
-// CompositeExpr is a composite expression that wraps current expression into logical group.
-type CompositeExpr struct {
-	// Expr is the expression to wrap.
-	Expr FilterExpr
-
-	isAcquired bool
 }
 
 // Complexity of the CompositeExpr is the complexity of the inner expression + 1.

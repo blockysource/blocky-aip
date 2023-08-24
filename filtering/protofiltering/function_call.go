@@ -529,7 +529,7 @@ func (b *Interpreter) tryParseAndCallFunction(ctx *ParseContext, x *ast.Function
 				res, err := b.TryParseSelectorExpr(ctx, at.Value, at.Fields...)
 				if err == nil {
 					// Ensure that the type of the selector matches the type of the argument.
-					field, mk, ok := traverseLastFieldExpr(res.Expr)
+					_, mk, fd, ok := b.traverseLastFieldExpr(res.Expr)
 					if !ok {
 						// The selector is not a valid field selector.
 						var res TryParseValueResult
@@ -541,9 +541,8 @@ func (b *Interpreter) tryParseAndCallFunction(ctx *ParseContext, x *ast.Function
 						return res, ErrInternal
 					}
 
-					fd := field.Field
 					if mk != nil {
-						fd = field.Field.MapValue()
+						fd = fd.MapValue()
 					}
 
 					// Check if the field type matches.

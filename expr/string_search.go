@@ -15,8 +15,13 @@
 package expr
 
 import (
+	"encoding/gob"
 	"sync"
 )
+
+func init() {
+	gob.Register(new(StringSearchExpr))
+}
 
 var stringSearchExprPool = &sync.Pool{
 	New: func() any {
@@ -59,6 +64,32 @@ type StringSearchExpr struct {
 	SearchComplexity int64
 
 	isAcquired bool
+}
+
+// Clone returns a copy of the StringSearchExpr.
+func (x *StringSearchExpr) Clone() FilterExpr {
+	if x == nil {
+		return nil
+	}
+	clone := AcquireStringSearchExpr()
+	clone.Value = x.Value
+	clone.PrefixWildcard = x.PrefixWildcard
+	clone.SuffixWildcard = x.SuffixWildcard
+	clone.SearchComplexity = x.SearchComplexity
+	return clone
+}
+
+// Equals returns true if the given expression is equal to the current one.
+func (x *StringSearchExpr) Equals(other FilterExpr) bool {
+	if x == nil || other == nil {
+		return false
+	}
+	if oc, ok := other.(*StringSearchExpr); ok {
+		return x.Value == oc.Value &&
+			x.PrefixWildcard == oc.PrefixWildcard &&
+			x.SuffixWildcard == oc.SuffixWildcard
+	}
+	return false
 }
 
 // Complexity returns the complexity of the expression.

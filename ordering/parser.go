@@ -69,6 +69,7 @@ func ErrHandler(fn ErrHandlerFn) ParserOpt {
 	}
 }
 
+// NewParser creates a new parser with a message descriptor and optional error handler.
 func NewParser(msg protoreflect.MessageDescriptor, opts ...ParserOpt) (*Parser, error) {
 	p := &Parser{msgDesc: msg, fieldsInfo: make([]fieldInfo, 0, 10)}
 
@@ -152,7 +153,7 @@ func (p *Parser) Parse(orderBy string) (oe *expr.OrderByExpr, err error) {
 		}
 
 		fe := expr.AcquireFieldSelectorExpr()
-		fe.Field = fd
+		fe.Field = fd.Name()
 		fe.FieldComplexity = c
 		cur.Field = fe
 
@@ -187,7 +188,7 @@ func (p *Parser) Parse(orderBy string) (oe *expr.OrderByExpr, err error) {
 			}
 
 			fe := expr.AcquireFieldSelectorExpr()
-			fe.Field = fd
+			fe.Field = fd.Name()
 			fe.FieldComplexity = c
 
 			setLatestTraverseField(cur, fe)

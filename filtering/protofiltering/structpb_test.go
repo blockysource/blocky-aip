@@ -35,7 +35,7 @@ func testStructPbFieldEQDirectString(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("struct") {
+	if left.Field != md.Fields().ByName("struct").Name() {
 		t.Fatalf("expected field 'struct' field but got %s", left.Field)
 	}
 
@@ -82,7 +82,7 @@ func testStructPbFieldEQDirectMessage(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected value expression but got %T", ce.Left)
 	}
 
-	if left.Field != md.Fields().ByName("struct") {
+	if left.Field != md.Fields().ByName("struct").Name() {
 		t.Fatalf("expected field 'struct' field but got %s", left.Field)
 	}
 

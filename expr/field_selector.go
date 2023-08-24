@@ -15,10 +15,15 @@
 package expr
 
 import (
+	"encoding/gob"
 	"sync"
 
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
+
+func init() {
+	gob.Register(new(FieldSelectorExpr))
+}
 
 var fieldSelectorExpr = &sync.Pool{
 	New: func() any {
@@ -41,8 +46,8 @@ func (e *FieldSelectorExpr) Free() {
 		e.Traversal = nil
 	}
 	if e.isAcquired {
-		e.Message = nil
-		e.Field = nil
+		e.Message = ""
+		e.Field = ""
 		e.FieldComplexity = 0
 		fieldSelectorExpr.Put(e)
 	}
@@ -54,10 +59,10 @@ var _ FilterExpr = (*FieldSelectorExpr)(nil)
 // It describes the expression "a.b.c" where b is a field of a, and c is a field of b.
 type FieldSelectorExpr struct {
 	// Message is the message descriptor of the literal.
-	Message protoreflect.MessageDescriptor
+	Message protoreflect.FullName
 
 	// Field is the field name of the literal.
-	Field protoreflect.FieldDescriptor
+	Field protoreflect.Name
 
 	// Traversal is the expression related to this field literal.
 	// This field is used as a linked list to traverse the field literals.
@@ -72,9 +77,50 @@ type FieldSelectorExpr struct {
 	isAcquired bool
 }
 
-// Parent returns the parent of the field literal.
-func (e *FieldSelectorExpr) Parent() protoreflect.MessageDescriptor {
-	return e.Field.Parent().(protoreflect.MessageDescriptor)
+// Clone returns a copy of the FieldSelectorExpr.
+func (e *FieldSelectorExpr) Clone() FilterExpr {
+	if e == nil {
+		return nil
+	}
+	clone := AcquireFieldSelectorExpr()
+	clone.Message = e.Message
+	clone.Field = e.Field
+	clone.FieldComplexity = e.FieldComplexity
+	if e.Traversal != nil {
+		clone.Traversal = e.Traversal.Clone()
+	}
+	return clone
+}
+
+func (e *FieldSelectorExpr) Equals(o FilterExpr) bool {
+	if e == nil && o == nil {
+		return true
+	}
+	if e == nil || o == nil {
+		return false
+	}
+
+	of, ok := o.(*FieldSelectorExpr)
+	if !ok {
+		return false
+	}
+
+	if e.Message != of.Message || e.Field != of.Field {
+		return false
+	}
+
+	if e.Traversal != nil && of.Traversal == nil {
+		return false
+	}
+
+	if e.Traversal == nil && of.Traversal != nil {
+		return false
+	}
+
+	if e.Traversal != nil && !e.Traversal.Equals(of.Traversal) {
+		return false
+	}
+	return true
 }
 
 // Complexity returns the complexity of the field literal.

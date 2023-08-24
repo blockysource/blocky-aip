@@ -15,8 +15,13 @@
 package expr
 
 import (
+	"encoding/gob"
 	"sync"
 )
+
+func init() {
+	gob.Register(new(NotExpr))
+}
 
 var notExprPool = &sync.Pool{
 	New: func() any {
@@ -32,6 +37,37 @@ func AcquireNotExpr() *NotExpr {
 	return notExprPool.Get().(*NotExpr)
 }
 
+var _ FilterExpr = (*NotExpr)(nil)
+
+// NotExpr is an expression that returns a negated result.
+type NotExpr struct {
+	// Expr is an expression that should be negated.
+	Expr FilterExpr
+
+	isAcquired bool
+}
+
+// Clone returns a copy of the current expression.
+func (e *NotExpr) Clone() FilterExpr {
+	if e == nil {
+		return nil
+	}
+	ne := AcquireNotExpr()
+	ne.Expr = e.Expr.Clone()
+	return ne
+}
+
+// Equals returns true if the given expression is equal to the current one.
+func (e *NotExpr) Equals(other FilterExpr) bool {
+	if e == nil || other == nil {
+		return false
+	}
+	if oc, ok := other.(*NotExpr); ok {
+		return e.Expr.Equals(oc.Expr)
+	}
+	return false
+}
+
 // Free puts the NotExpr back to the pool.
 func (e *NotExpr) Free() {
 	if e == nil {
@@ -44,16 +80,6 @@ func (e *NotExpr) Free() {
 	if e.isAcquired {
 		notExprPool.Put(e)
 	}
-}
-
-var _ FilterExpr = (*NotExpr)(nil)
-
-// NotExpr is an expression that returns a negated result.
-type NotExpr struct {
-	// Expr is an expression that should be negated.
-	Expr FilterExpr
-
-	isAcquired bool
 }
 
 // Complexity of the NotExpr is 1 + complexity of the inner expression.

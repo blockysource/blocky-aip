@@ -15,9 +15,14 @@
 package expr
 
 import (
+	"encoding/gob"
 	"fmt"
 	"sync"
 )
+
+func init() {
+	gob.Register(new(CompareExpr))
+}
 
 var compareExprPool = &sync.Pool{
 	New: func() any {
@@ -64,6 +69,48 @@ type CompareExpr struct {
 	Right FilterExpr
 
 	isAcquired bool
+}
+
+// Clone returns a copy of the CompareExpr.
+func (x *CompareExpr) Clone() FilterExpr {
+	if x == nil {
+		return nil
+	}
+	clone := AcquireCompareExpr()
+	clone.Comparator = x.Comparator
+	if x.Left != nil {
+		clone.Left = x.Left.Clone()
+	}
+	if x.Right != nil {
+		clone.Right = x.Right.Clone()
+	}
+	return clone
+}
+
+// Equals returns true if the given expression is equal to the current one.
+func (x *CompareExpr) Equals(other FilterExpr) bool {
+	if other == nil {
+		return false
+	}
+
+	oc, ok := other.(*CompareExpr)
+	if !ok {
+		return false
+	}
+
+	if x.Comparator != oc.Comparator {
+		return false
+	}
+
+	if !x.Left.Equals(oc.Left) {
+		return false
+	}
+
+	if !x.Right.Equals(oc.Right) {
+		return false
+	}
+
+	return true
 }
 
 // Complexity returns the complexity of the expression.

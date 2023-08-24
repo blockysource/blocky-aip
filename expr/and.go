@@ -15,8 +15,13 @@
 package expr
 
 import (
+	"encoding/gob"
 	"sync"
 )
+
+func init() {
+	gob.Register(new(AndExpr))
+}
 
 var andExprPool = &sync.Pool{
 	New: func() any {
@@ -56,6 +61,42 @@ type AndExpr struct {
 	// Expr is a list of expressions that should be evaluated with AND operator.
 	Expr       []FilterExpr
 	isAcquired bool
+}
+
+// Equals returns true if the given expression is equal to the current one.
+func (e *AndExpr) Equals(other FilterExpr) bool {
+	if other == nil {
+		return false
+	}
+
+	a, ok := other.(*AndExpr)
+	if !ok {
+		return false
+	}
+
+	if len(e.Expr) != len(a.Expr) {
+		return false
+	}
+
+	for i := range e.Expr {
+		if !e.Expr[i].Equals(a.Expr[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+// Clone returns a deep copy of the AndExpr.
+func (e *AndExpr) Clone() FilterExpr {
+	if e == nil {
+		return nil
+	}
+
+	clone := AcquireAndExpr()
+	for _, expr := range e.Expr {
+		clone.Expr = append(clone.Expr, expr.Clone())
+	}
+	return clone
 }
 
 // Complexity of the AndExpr is the sum of complexities of the inner expressions + 1.
