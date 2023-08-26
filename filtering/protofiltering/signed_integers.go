@@ -22,6 +22,7 @@ import (
 
 	"github.com/blockysource/blocky-aip/expr"
 	"github.com/blockysource/blocky-aip/filtering/ast"
+	"github.com/blockysource/blocky-aip/token"
 )
 
 // TryParseSignedIntField tries to parse a signed int field.
@@ -43,13 +44,14 @@ func (b *Interpreter) TryParseSignedIntField(ctx *ParseContext, in TryParseValue
 			return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field cannot accept string literal as a value")}, ErrInvalidValue
 		}
 		return TryParseValueResult{}, ErrInvalidValue
-	case *ast.KeywordExpr:
-		// Keyword expression cannot be a signed int value.
-		if ctx.ErrHandler != nil {
-			return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field cannot accept keyword expression as a value")}, ErrInvalidValue
-		}
-		return TryParseValueResult{}, ErrInvalidValue
 	case *ast.TextLiteral:
+		if !ft.Token.IsInteger() {
+			// A text literal must be an int value.
+			if ctx.ErrHandler != nil {
+				return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field is of %q type, but provided value is not valid: '%s'", in.Field.Kind(), ft.Value)}, ErrInvalidValue
+			}
+			return TryParseValueResult{}, ErrInvalidValue
+		}
 		tl = ft
 	case *ast.ArrayExpr:
 		// An array can be parsed as a repeated field value.
@@ -102,7 +104,7 @@ func (b *Interpreter) TryParseSignedIntField(ctx *ParseContext, in TryParseValue
 		return TryParseValueResult{}, ErrInvalidAST
 	}
 
-	if in.IsNullable && tl.Value == "null" {
+	if in.IsNullable && tl.Token == token.NULL {
 		ve := expr.AcquireValueExpr()
 		ve.Value = nil
 		return TryParseValueResult{Expr: ve}, nil

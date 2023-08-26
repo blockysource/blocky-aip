@@ -19,7 +19,7 @@ import (
 
 	"google.golang.org/protobuf/reflect/protoreflect"
 
-	"github.com/blockysource/blocky-aip/filtering/token"
+	"github.com/blockysource/blocky-aip/token"
 )
 
 // Compile-time check for StructExpr implementing ComparableExpr.

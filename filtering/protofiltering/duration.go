@@ -24,6 +24,7 @@ import (
 
 	"github.com/blockysource/blocky-aip/expr"
 	"github.com/blockysource/blocky-aip/filtering/ast"
+	"github.com/blockysource/blocky-aip/token"
 )
 
 var durationMsgDesc = new(durationpb.Duration).ProtoReflect().Descriptor()
@@ -46,7 +47,7 @@ func (b *Interpreter) TryParseDurationField(ctx *ParseContext, in TryParseValueI
 	}
 
 	// Duration can be a single or two fields separated by a period.
-	if len(in.Args) > 1 {
+	if len(in.Args) > 0 {
 		if ctx.ErrHandler != nil {
 			return TryParseValueResult{ErrPos: in.Value.Position(), ErrMsg: fmt.Sprintf("field is of %q type, but provided value is not a valid %q value: '%s'", in.Field.Kind(), in.Field.Kind(), joinedName(in.Value, in.Args...))}, ErrInvalidValue
 		}
@@ -61,67 +62,32 @@ func (b *Interpreter) TryParseDurationField(ctx *ParseContext, in TryParseValueI
 		}
 		return TryParseValueResult{}, ErrInvalidValue
 	case *ast.TextLiteral:
-		if len(in.Args) == 0 && in.IsNullable && ft.Value == "null" {
+		if in.IsNullable && ft.Token == token.NULL {
 			ve := expr.AcquireValueExpr()
 			ve.Value = nil
 			return TryParseValueResult{Expr: ve}, nil
 		}
 
-		if len(in.Args) == 0 {
-			// The duration probably don't have fractal part.
-			// Try parsing it as an integer with unit.
-			d, err := time.ParseDuration(ft.Value)
-			if err != nil {
-				if ctx.ErrHandler != nil {
-					return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field is of %q type, but provided value is not valid: '%s'", in.Field.Kind(), ft.Value)}, ErrInvalidValue
-				}
-				return TryParseValueResult{}, ErrInvalidValue
-			}
-
-			ve := expr.AcquireValueExpr()
-			ve.Value = d
-			return TryParseValueResult{Expr: ve}, nil
-		}
-
-		// There cannot be more than one argument for period separated duration.
-		if len(in.Args) > 1 {
-			var res TryParseValueResult
+		if ft.Token != token.DURATION {
 			if ctx.ErrHandler != nil {
-				res.ErrPos = in.Value.Position()
-				res.ErrMsg = fmt.Sprintf("field is of %q type, but provided value is not valid: '%s'", in.Field.Kind(), joinedName(in.Value, in.Args...))
-			}
-			return res, ErrInvalidValue
-		}
-
-		var fractal string
-		// This is a fractal numeric value.
-		// Try parsing it as a float.
-		switch at := in.Args[0].(type) {
-		case *ast.TextLiteral:
-			fractal = at.Value
-		default:
-			if ctx.ErrHandler != nil {
-				return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field is of %q type, but provided value is not valid: '%s'", in.Field.Kind(), ft.Value+"."+at.String())}, ErrInvalidValue
+				return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field is of %q type, but provided value is not valid: '%s'", in.Field.Kind(), ft.Value)}, ErrInvalidValue
 			}
 			return TryParseValueResult{}, ErrInvalidValue
 		}
 
-		var sb strings.Builder
-		sb.WriteString(ft.Value)
-		sb.WriteRune('.')
-		sb.WriteString(fractal)
-
-		d, err := time.ParseDuration(sb.String())
+		// The duration probably don't have fractal part.
+		// Try parsing it as an integer with unit.
+		d, err := time.ParseDuration(ft.Value)
 		if err != nil {
 			if ctx.ErrHandler != nil {
-				return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field is of %q type, but provided value is not valid: '%s'", in.Field.Kind(), ft.Value+"."+fractal)}, ErrInvalidValue
+				return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field is of %q type, but provided value is not valid: '%s'", in.Field.Kind(), ft.Value)}, ErrInvalidValue
 			}
 			return TryParseValueResult{}, ErrInvalidValue
 		}
 
 		ve := expr.AcquireValueExpr()
 		ve.Value = d
-		return TryParseValueResult{Expr: ve, ArgsUsed: 1}, nil
+		return TryParseValueResult{Expr: ve}, nil
 	case *ast.ArrayExpr:
 		// An array can be parsed as a repeated field value.
 		ae := expr.AcquireArrayExpr()
@@ -132,6 +98,7 @@ func (b *Interpreter) TryParseDurationField(ctx *ParseContext, in TryParseValueI
 				AllowIndirect: in.AllowIndirect,
 				IsNullable:    in.IsNullable,
 				Value:         elem,
+				Complexity:    in.Complexity,
 			})
 			if err != nil {
 				return res, err
@@ -225,6 +192,7 @@ func (b *Interpreter) TryParseDurationField(ctx *ParseContext, in TryParseValueI
 				AllowIndirect: in.AllowIndirect,
 				IsNullable:    false,
 				Value:         field.Value,
+				Complexity:    in.Complexity,
 			}
 
 			res, err := b.TryParseValue(ctx, vi)

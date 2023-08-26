@@ -37,14 +37,7 @@ func AcquireStringSearchExpr() *StringSearchExpr {
 	return stringSearchExprPool.Get().(*StringSearchExpr)
 }
 
-// Free puts the StringSearchExpr back to the pool.
-func (x *StringSearchExpr) Free() {
-	if x == nil || !x.isAcquired {
-		return
-	}
-	*x = StringSearchExpr{}
-	stringSearchExprPool.Put(x)
-}
+
 
 var _ FilterExpr = (*StringSearchExpr)(nil)
 
@@ -67,7 +60,7 @@ type StringSearchExpr struct {
 }
 
 // Clone returns a copy of the StringSearchExpr.
-func (x *StringSearchExpr) Clone() FilterExpr {
+func (x *StringSearchExpr) Clone() Expr {
 	if x == nil {
 		return nil
 	}
@@ -80,7 +73,7 @@ func (x *StringSearchExpr) Clone() FilterExpr {
 }
 
 // Equals returns true if the given expression is equal to the current one.
-func (x *StringSearchExpr) Equals(other FilterExpr) bool {
+func (x *StringSearchExpr) Equals(other Expr) bool {
 	if x == nil || other == nil {
 		return false
 	}
@@ -90,6 +83,15 @@ func (x *StringSearchExpr) Equals(other FilterExpr) bool {
 			x.SuffixWildcard == oc.SuffixWildcard
 	}
 	return false
+}
+
+// Free puts the StringSearchExpr back to the pool.
+func (x *StringSearchExpr) Free() {
+	if x == nil || !x.isAcquired {
+		return
+	}
+	*x = StringSearchExpr{}
+	stringSearchExprPool.Put(x)
 }
 
 // Complexity returns the complexity of the expression.

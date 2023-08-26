@@ -18,8 +18,8 @@ import (
 	"testing"
 
 	"github.com/blockysource/blocky-aip/filtering/ast"
-	"github.com/blockysource/blocky-aip/filtering/scanner"
-	"github.com/blockysource/blocky-aip/filtering/token"
+	"github.com/blockysource/blocky-aip/scanner"
+	"github.com/blockysource/blocky-aip/token"
 )
 
 func memberTextLiteral(t *testing.T, m *ast.MemberExpr, expected string, pos int) {

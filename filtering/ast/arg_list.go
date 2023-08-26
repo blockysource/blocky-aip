@@ -17,7 +17,7 @@ package ast
 import (
 	"strings"
 
-	"github.com/blockysource/blocky-aip/filtering/token"
+	"github.com/blockysource/blocky-aip/token"
 )
 
 // ArgListExpr is a list of arguments to a function call.

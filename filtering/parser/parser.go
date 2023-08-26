@@ -19,8 +19,8 @@ import (
 	"sync"
 
 	"github.com/blockysource/blocky-aip/filtering/ast"
-	"github.com/blockysource/blocky-aip/filtering/scanner"
-	"github.com/blockysource/blocky-aip/filtering/token"
+	"github.com/blockysource/blocky-aip/scanner"
+	"github.com/blockysource/blocky-aip/token"
 )
 
 // Parser is responsible for parsing the input string filter into an AST.
@@ -86,7 +86,7 @@ func NewParser(src string, opts ...ParserOption) *Parser {
 		opt(p)
 	}
 
-	p.scanner.Reset(src, p.err, p.useStructs, p.useArrays, p.useInComparator)
+	p.scanner.Reset(src, p.err)
 
 	return p
 }
@@ -99,7 +99,7 @@ func (p *Parser) Reset(src string, opts ...ParserOption) {
 			opt(p)
 		}
 	}
-	p.scanner.Reset(src, p.err, p.useStructs, p.useArrays, p.useInComparator)
+	p.scanner.Reset(src, p.err)
 }
 
 // ErrInvalidFilterSyntax is returned when the input string filter has invalid syntax.

@@ -17,7 +17,7 @@ package ast
 import (
 	"strings"
 
-	"github.com/blockysource/blocky-aip/filtering/token"
+	"github.com/blockysource/blocky-aip/token"
 )
 
 // SequenceExpr is composed of one or more whitespace (WS) separated factors.

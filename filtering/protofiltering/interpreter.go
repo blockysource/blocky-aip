@@ -25,7 +25,8 @@ import (
 
 	"github.com/blockysource/blocky-aip/expr"
 	"github.com/blockysource/blocky-aip/filtering/parser"
-	"github.com/blockysource/blocky-aip/filtering/token"
+	"github.com/blockysource/blocky-aip/internal/info"
+	"github.com/blockysource/blocky-aip/token"
 )
 
 var (
@@ -61,17 +62,7 @@ type Interpreter struct {
 
 	functionCallDeclarations map[string]*FunctionCallDeclaration
 
-	fieldInfo struct {
-		ls  []fieldInfo
-		mut sync.RWMutex
-	}
-}
-
-type fieldInfo struct {
-	fd         protoreflect.FieldDescriptor
-	complexity int64
-	forbidden  bool
-	nullable   bool
+	msgInfo info.MessagesInfo
 }
 
 // Option is an option that can be passed to the interpreter.
@@ -125,7 +116,7 @@ func NewInterpreter(msg protoreflect.MessageDescriptor, opts ...Option) (*Interp
 
 func (b *Interpreter) Reset(msg protoreflect.MessageDescriptor, opts ...Option) error {
 	b.msg = msg
-	b.fieldInfo.ls = make([]fieldInfo, 0, 16)
+	b.msgInfo = info.MapMsgInfo(msg)
 
 	if b.msg == nil {
 		return errors.New("message descriptor is not set")
@@ -139,28 +130,6 @@ func (b *Interpreter) Reset(msg protoreflect.MessageDescriptor, opts ...Option) 
 	return nil
 }
 
-func (b *Interpreter) getFieldInfo(fd protoreflect.FieldDescriptor) fieldInfo {
-	b.fieldInfo.mut.RLock()
-
-	for _, fi := range b.fieldInfo.ls {
-		if fi.fd == fd {
-			b.fieldInfo.mut.RUnlock()
-			return fi
-		}
-	}
-	b.fieldInfo.mut.RUnlock()
-
-	b.fieldInfo.mut.Lock()
-	fi := fieldInfo{
-		fd:         fd,
-		complexity: getFieldComplexity(fd),
-		forbidden:  IsFieldFilteringForbidden(fd),
-		nullable:   IsFieldNullable(fd),
-	}
-	b.fieldInfo.ls = append(b.fieldInfo.ls, fi)
-	b.fieldInfo.mut.Unlock()
-	return fi
-}
 
 // Parse input filter into an expression.
 // Implements filtering.Interpreter interface.

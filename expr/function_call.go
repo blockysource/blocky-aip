@@ -39,7 +39,11 @@ func AcquireFunctionCallExpr() *FunctionCallExpr {
 	return functionCallExprPool.Get().(*FunctionCallExpr)
 }
 
-var _ FilterExpr = (*FunctionCallExpr)(nil)
+// Compile-time check to verify that FunctionCallExpr implements Expr and FilterExpr interface.
+var (
+	_ FilterExpr = (*FunctionCallExpr)(nil)
+	_ Expr       = (*FunctionCallExpr)(nil)
+)
 
 // FunctionCallExpr is an expression that represents a function call.
 // It should be used by the service that handles the function call.
@@ -64,7 +68,7 @@ type FunctionCallExpr struct {
 }
 
 // Clone returns a copy of the current expression.
-func (x *FunctionCallExpr) Clone() FilterExpr {
+func (x *FunctionCallExpr) Clone() Expr {
 	if x == nil {
 		return nil
 	}
@@ -73,13 +77,13 @@ func (x *FunctionCallExpr) Clone() FilterExpr {
 	clone.Name = x.Name
 	clone.CallComplexity = x.CallComplexity
 	for _, a := range x.Arguments {
-		clone.Arguments = append(clone.Arguments, a.Clone())
+		clone.Arguments = append(clone.Arguments, a.Clone().(FilterExpr))
 	}
 	return clone
 }
 
 // Equals returns true if the given expression is equal to the current one.
-func (x *FunctionCallExpr) Equals(other FilterExpr) bool {
+func (x *FunctionCallExpr) Equals(other Expr) bool {
 	if other == nil {
 		return false
 	}

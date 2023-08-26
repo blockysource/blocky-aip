@@ -38,7 +38,11 @@ func AcquireMapValueExpr() *MapValueExpr {
 	return mapValueExprPool.Get().(*MapValueExpr)
 }
 
-var _ FilterExpr = (*MapValueExpr)(nil)
+// Compile-time check to verify that MapValueExpr implements Expr and FilterExpr interface.
+var (
+	_ FilterExpr = (*MapValueExpr)(nil)
+	_ Expr       = (*MapValueExpr)(nil)
+)
 
 type (
 	// MapValueExpr is an expression that can be represented as a map of values.
@@ -54,7 +58,7 @@ type (
 )
 
 // Clone returns a copy of the current expression.
-func (e *MapValueExpr) Clone() FilterExpr {
+func (e *MapValueExpr) Clone() Expr {
 	if e == nil {
 		return nil
 	}
@@ -62,14 +66,14 @@ func (e *MapValueExpr) Clone() FilterExpr {
 	for _, entry := range e.Values {
 		clone.Values = append(clone.Values, MapValueExprEntry{
 			Key:   entry.Key.Clone().(*ValueExpr),
-			Value: entry.Value.Clone(),
+			Value: entry.Value.Clone().(FilterExpr),
 		})
 	}
 	return clone
 }
 
 // Equals returns true if the MapValueExpr is equal to the given expression.
-func (e *MapValueExpr) Equals(other FilterExpr) bool {
+func (e *MapValueExpr) Equals(other Expr) bool {
 	if e == nil && other == nil {
 		return true
 	}
@@ -131,4 +135,5 @@ func (e *MapValueExpr) Complexity() int64 {
 	return c
 }
 
-func (e *MapValueExpr) isFilterExpr() {}
+func (e *MapValueExpr) isFilterExpr()      {}
+func (e *MapValueExpr) isUpdateValueExpr() {}

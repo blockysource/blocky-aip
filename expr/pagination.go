@@ -37,6 +37,9 @@ func AcquirePaginationExpr() *PaginationExpr {
 	return paginationExprPool.Get().(*PaginationExpr)
 }
 
+// Compile-time check to verify that PaginationExpr implements Expr interface.
+var _ Expr = (*PaginationExpr)(nil)
+
 // PaginationExpr is an expression that defines pagination.
 type PaginationExpr struct {
 	// PageSize is the number of items to return per page.
@@ -59,15 +62,21 @@ func (x *PaginationExpr) Free() {
 }
 
 // Equals returns true if the other expression is equal to the current one.
-func (x *PaginationExpr) Equals(other *PaginationExpr) bool {
+func (x *PaginationExpr) Equals(other Expr) bool {
 	if x == nil || other == nil {
 		return x == other
 	}
-	return x.PageSize == other.PageSize && x.Skip == other.Skip
+
+	o, ok := other.(*PaginationExpr)
+	if !ok {
+		return false
+	}
+
+	return x.PageSize == o.PageSize && x.Skip == o.Skip
 }
 
 // Clone returns a copy of the current expression.
-func (x *PaginationExpr) Clone() *PaginationExpr {
+func (x *PaginationExpr) Clone() Expr {
 	if x == nil {
 		return nil
 	}

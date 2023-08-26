@@ -27,6 +27,7 @@ import (
 
 	"github.com/blockysource/blocky-aip/expr"
 	"github.com/blockysource/blocky-aip/filtering/ast"
+	"github.com/blockysource/blocky-aip/token"
 )
 
 func (b *Interpreter) TryParseMessageStructField(ctx *ParseContext, in TryParseValueInput) (TryParseValueResult, error) {
@@ -54,7 +55,7 @@ func (b *Interpreter) TryParseMessageStructField(ctx *ParseContext, in TryParseV
 		}
 		return TryParseValueResult{}, ErrInvalidValue
 	case *ast.TextLiteral:
-		if in.IsNullable && ft.Value == "null" {
+		if in.IsNullable && ft.Token == token.NULL {
 			ve := expr.AcquireValueExpr()
 			ve.Value = nil
 			return TryParseValueResult{Expr: ve}, nil
@@ -109,14 +110,15 @@ func (b *Interpreter) TryParseMessageStructField(ctx *ParseContext, in TryParseV
 				return TryParseValueResult{}, ErrInvalidValue
 			}
 
-			fi := b.getFieldInfo(df)
+			fi := b.msgInfo.GetFieldInfo(df)
 
 			// Try parsing the field value.
 			v, err := b.TryParseValue(ctx, TryParseValueInput{
 				Field:         df,
 				AllowIndirect: in.AllowIndirect,
-				IsNullable:    fi.nullable,
+				IsNullable:    fi.Nullable,
 				Value:         field.Value,
+				Complexity:    fi.Complexity,
 			})
 			if err != nil {
 				return v, err
@@ -165,6 +167,7 @@ func (b *Interpreter) TryParseMessageStructField(ctx *ParseContext, in TryParseV
 				AllowIndirect: in.AllowIndirect,
 				IsNullable:    in.IsNullable,
 				Value:         elem,
+				Complexity:    in.Complexity,
 			})
 			if err != nil {
 				return res, err

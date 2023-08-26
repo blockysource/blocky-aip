@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/blockysource/blocky-aip/filtering/ast"
+	"github.com/blockysource/blocky-aip/token"
 )
 
 const restrictionWithEQ = "a = b"
@@ -1500,8 +1501,8 @@ func testRestrictionWithTimestamp(t *testing.T, pf *ParsedFilter) {
 	if tl.Value != "2018-01-01T00:00:00Z" {
 		t.Fatalf("expected '2018-01-01T00:00:00Z' got: %v", tl.Value)
 	}
-	if !tl.IsTimestamp {
-		t.Fatalf("expected timestamp got: %v", tl.IsTimestamp)
+	if tl.Token != token.TIMESTAMP {
+		t.Fatalf("expected timestamp got: %v", tl.Token)
 	}
 }
 
@@ -1556,8 +1557,8 @@ func testRestrictionWithTimestampAndTimezone(t *testing.T, pf *ParsedFilter) {
 	if tl.Value != "2018-01-01T00:00:00+01:00" {
 		t.Fatalf("expected '2018-01-01T00:00:00+01:00' got: %v", tl.Value)
 	}
-	if !tl.IsTimestamp {
-		t.Fatalf("expected timestamp got: %v", tl.IsTimestamp)
+	if tl.Token != token.TIMESTAMP {
+		t.Fatalf("expected timestamp got: %v", tl.Token)
 	}
 }
 
@@ -1586,8 +1587,8 @@ func testRestrictionWithTimestampAndHas(t *testing.T, pf *ParsedFilter) {
 	if tl.Value != "2018-01-01T00:00:00Z" {
 		t.Fatalf("expected '2018-01-01T00:00:00Z' got: %v", tl.Value)
 	}
-	if !tl.IsTimestamp {
-		t.Fatalf("expected timestamp got: %v", tl.IsTimestamp)
+	if tl.Token != token.TIMESTAMP {
+		t.Fatalf("expected timestamp got: %v", tl.Token)
 	}
 	if rest.Comparator == nil {
 		t.Fatal("expected comparator")

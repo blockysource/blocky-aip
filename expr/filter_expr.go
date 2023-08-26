@@ -14,6 +14,9 @@
 
 package expr
 
+// Compile-time check to verify that FilterExpr implements Expr.
+var _ Expr = (FilterExpr)(nil)
+
 // FilterExpr is a filter expression that can be evaluated.
 type FilterExpr interface {
 	// Complexity returns approximate complexity of the expression.
@@ -29,10 +32,10 @@ type FilterExpr interface {
 	Free()
 
 	// Equals returns true if the expression is equal to the other expression.
-	Equals(other FilterExpr) bool
+	Equals(other Expr) bool
 
 	// Clone returns a copy of the expression.
-	Clone() FilterExpr
+	Clone() Expr
 
 	isFilterExpr()
 }

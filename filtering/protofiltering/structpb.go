@@ -24,6 +24,7 @@ import (
 
 	"github.com/blockysource/blocky-aip/expr"
 	"github.com/blockysource/blocky-aip/filtering/ast"
+	"github.com/blockysource/blocky-aip/token"
 )
 
 // TryParseStructPb tries to parse a well-known structpb.Value field.
@@ -51,6 +52,7 @@ func (b *Interpreter) TryParseStructPb(ctx *ParseContext, in TryParseValueInput)
 			}
 			return res, ErrInvalidValue
 		}
+
 		mp := make(map[string]any)
 		if err := json.Unmarshal(bv, &mp); err != nil {
 			// This is internal error, return an error.
@@ -65,7 +67,7 @@ func (b *Interpreter) TryParseStructPb(ctx *ParseContext, in TryParseValueInput)
 		ve.Value = mp
 		return TryParseValueResult{Expr: ve}, nil
 	case *ast.TextLiteral:
-		if in.IsNullable && ft.Value == "null" {
+		if in.IsNullable && ft.Token == token.NULL {
 			ve := expr.AcquireValueExpr()
 			ve.Value = nil
 			return TryParseValueResult{Expr: ve}, nil
@@ -86,6 +88,7 @@ func (b *Interpreter) TryParseStructPb(ctx *ParseContext, in TryParseValueInput)
 				AllowIndirect: in.AllowIndirect,
 				IsNullable:    in.IsNullable,
 				Value:         elem,
+				Complexity:    in.Complexity,
 			})
 			if err != nil {
 				return res, err

@@ -24,6 +24,7 @@ import (
 
 	"github.com/blockysource/blocky-aip/expr"
 	"github.com/blockysource/blocky-aip/filtering/ast"
+	"github.com/blockysource/blocky-aip/token"
 )
 
 // TryParseTimestampField tries parsing a timestamp field value.
@@ -46,12 +47,12 @@ func (b *Interpreter) TryParseTimestampField(ctx *ParseContext, in TryParseValue
 		}
 		return TryParseValueResult{}, ErrInvalidValue
 	case *ast.TextLiteral:
-		if in.IsNullable && ft.Value == "null" {
+		if in.IsNullable && ft.Token == token.NULL {
 			ve := expr.AcquireValueExpr()
 			ve.Value = nil
 			return TryParseValueResult{Expr: ve}, nil
 		}
-		if !ft.IsTimestamp {
+		if ft.Token != token.TIMESTAMP {
 			if ctx.ErrHandler != nil {
 				return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field is of %q type, but provided value is not valid: '%s'", in.Field.Kind(), ft.Value)}, ErrInvalidValue
 			}
@@ -135,6 +136,7 @@ func (b *Interpreter) TryParseTimestampField(ctx *ParseContext, in TryParseValue
 				AllowIndirect: in.AllowIndirect,
 				IsNullable:    false,
 				Value:         field.Value,
+				Complexity:    in.Complexity,
 			}
 
 			res, err := b.TryParseValue(ctx, vi)
@@ -197,6 +199,7 @@ func (b *Interpreter) TryParseTimestampField(ctx *ParseContext, in TryParseValue
 				AllowIndirect: in.AllowIndirect,
 				IsNullable:    in.IsNullable,
 				Value:         elem,
+				Complexity:    in.Complexity,
 			})
 			if err != nil {
 				return res, err
@@ -224,12 +227,6 @@ func (b *Interpreter) TryParseTimestampField(ctx *ParseContext, in TryParseValue
 			ve.Elements = append(ve.Elements, res.Expr)
 		}
 		return TryParseValueResult{Expr: ve}, nil
-	case *ast.KeywordExpr:
-		// Keyword expression cannot be a timestamp value.
-		if ctx.ErrHandler != nil {
-			return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field cannot accept keyword expression as a value")}, ErrInvalidValue
-		}
-		return TryParseValueResult{}, ErrInvalidValue
 	default:
 		// This is invalid AST node, return an error.
 		if ctx.ErrHandler != nil {

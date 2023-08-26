@@ -37,7 +37,11 @@ func AcquireNotExpr() *NotExpr {
 	return notExprPool.Get().(*NotExpr)
 }
 
-var _ FilterExpr = (*NotExpr)(nil)
+// Compile-time check to verify that NotExpr implements Expr and FilterExpr interface.
+var (
+	_ FilterExpr = (*NotExpr)(nil)
+	_ Expr       = (*NotExpr)(nil)
+)
 
 // NotExpr is an expression that returns a negated result.
 type NotExpr struct {
@@ -48,17 +52,17 @@ type NotExpr struct {
 }
 
 // Clone returns a copy of the current expression.
-func (e *NotExpr) Clone() FilterExpr {
+func (e *NotExpr) Clone() Expr {
 	if e == nil {
 		return nil
 	}
 	ne := AcquireNotExpr()
-	ne.Expr = e.Expr.Clone()
+	ne.Expr = e.Expr.Clone().(FilterExpr)
 	return ne
 }
 
 // Equals returns true if the given expression is equal to the current one.
-func (e *NotExpr) Equals(other FilterExpr) bool {
+func (e *NotExpr) Equals(other Expr) bool {
 	if e == nil || other == nil {
 		return false
 	}

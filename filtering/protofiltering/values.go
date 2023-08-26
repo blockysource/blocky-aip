@@ -15,7 +15,6 @@
 package protofiltering
 
 import (
-	"encoding/base64"
 	"fmt"
 	"strings"
 
@@ -25,7 +24,7 @@ import (
 
 	"github.com/blockysource/blocky-aip/expr"
 	"github.com/blockysource/blocky-aip/filtering/ast"
-	"github.com/blockysource/blocky-aip/filtering/token"
+	"github.com/blockysource/blocky-aip/token"
 	blockyannotations "github.com/blockysource/go-genproto/blocky/api/annotations"
 )
 
@@ -48,6 +47,9 @@ type TryParseValueInput struct {
 	// Args are the optional arguments of the value.
 	// Used mostly by the member expression fields.
 	Args []ast.FieldExpr
+
+	// Complexity defines the complexity of a field.
+	Complexity int64
 }
 
 // TryParseValueResult is a result of the TryParseValue function.
@@ -106,20 +108,6 @@ func IsFieldNullable(field protoreflect.FieldDescriptor) bool {
 		}
 	}
 	return false
-}
-
-// GetFieldComplexity extracts the complexity of a field out of the given field descriptor.
-func GetFieldComplexity(fd FieldDescriptor) int64 {
-	switch fdt := fd.(type) {
-	case *FunctionCallArgumentDeclaration:
-		return 1
-	case *FunctionCallReturningDeclaration:
-		return 1
-	case protoreflect.FieldDescriptor:
-		return getFieldComplexity(fdt)
-	default:
-		return 1
-	}
 }
 
 func getFieldComplexity(fdt protoreflect.FieldDescriptor) int64 {
@@ -256,6 +244,7 @@ func (b *Interpreter) TryParseMapField(ctx *ParseContext, in TryParseValueInput)
 				Field:         kd,
 				IsNullable:    false,
 				AllowIndirect: false,
+				Complexity:    in.Complexity,
 			}
 			if len(elem.Name) == 0 {
 				var res TryParseValueResult
@@ -294,6 +283,7 @@ func (b *Interpreter) TryParseMapField(ctx *ParseContext, in TryParseValueInput)
 				Value:         elem.Value,
 				IsNullable:    false,
 				AllowIndirect: false,
+				Complexity:    in.Complexity,
 			})
 			if err != nil {
 				return vv, err
@@ -351,88 +341,7 @@ func (b *Interpreter) TryParseMapField(ctx *ParseContext, in TryParseValueInput)
 	}
 }
 
-// TryParseBytesField tries to parse a bytes field.
-// It can be a single bytes value or a repeated bytes value.
-func (b *Interpreter) TryParseBytesField(ctx *ParseContext, in TryParseValueInput) (TryParseValueResult, error) {
-	// Check if no more Fields are present in the input *x.MemberExpr.
-	// If there are, then return an error.
-	if len(in.Args) > 0 {
-		if ctx.ErrHandler != nil {
-			return TryParseValueResult{ErrPos: in.Value.Position(), ErrMsg: fmt.Sprintf("field is of %q type, but provided value is not a valid %q value: '%s'", in.Field.Kind(), in.Field.Kind(), joinedName(in.Value, in.Args...))}, ErrInvalidValue
-		}
-		return TryParseValueResult{}, ErrInvalidValue
-	}
 
-	var value string
-	switch vt := in.Value.(type) {
-	case *ast.TextLiteral:
-		value = vt.Value
-	case *ast.StringLiteral:
-		value = vt.Value
-	case *ast.KeywordExpr:
-		// KeywordExpr is not supported for bytes field.
-		if ctx.ErrHandler != nil {
-			ctx.ErrHandler(vt.Position(), "keyword expression is not supported for bytes field")
-		}
-		return TryParseValueResult{}, ErrInvalidValue
-	case *ast.ArrayExpr:
-		// An array can be parsed as a repeated field value.
-		ve := expr.AcquireArrayExpr()
-		for _, elem := range vt.Elements {
-			// Try parsing each element as a bytes value.
-			res, err := b.TryParseValue(ctx, TryParseValueInput{
-				Field:         in.Field,
-				AllowIndirect: in.AllowIndirect,
-				IsNullable:    in.IsNullable,
-				Value:         elem,
-			})
-			if err != nil {
-				return res, err
-			}
-
-			if res.Expr == nil {
-				// This is internal error, return an error.
-				if ctx.ErrHandler != nil {
-					return TryParseValueResult{ErrPos: elem.Position(), ErrMsg: "internal error: parsed expression is nil"}, ErrInternal
-				}
-				return TryParseValueResult{}, ErrInternal
-			}
-
-			if !in.AllowIndirect {
-				switch res.Expr.(type) {
-				case *expr.FunctionCallExpr, *expr.FieldSelectorExpr:
-					ve.Free()
-					res.Expr.Free()
-					if ctx.ErrHandler != nil {
-						return TryParseValueResult{ErrPos: elem.Position(), ErrMsg: fmt.Sprintf("field cannot accept function call or field selector expression as a value")}, ErrInvalidValue
-					}
-					return TryParseValueResult{}, ErrInternal
-				}
-			}
-
-			ve.Elements = append(ve.Elements, res.Expr)
-		}
-		return TryParseValueResult{Expr: ve}, nil
-	}
-
-	if in.IsNullable && value == "null" {
-		ve := expr.AcquireValueExpr()
-		ve.Value = nil
-		return TryParseValueResult{Expr: ve}, nil
-	}
-	dec, err := base64.StdEncoding.DecodeString(value)
-	if err != nil {
-		if ctx.ErrHandler != nil {
-			return TryParseValueResult{ErrPos: in.Value.Position(), ErrMsg: fmt.Sprintf("field is of %q type, but provided value is not valid: '%s'", in.Field.Kind(), value)}, ErrInvalidValue
-		}
-		return TryParseValueResult{}, ErrInvalidValue
-	}
-
-	ve := expr.AcquireValueExpr()
-	ve.Value = dec
-
-	return TryParseValueResult{Expr: ve}, nil
-}
 
 func joinedName(v ast.AnyExpr, args ...ast.FieldExpr) string {
 	var sb strings.Builder

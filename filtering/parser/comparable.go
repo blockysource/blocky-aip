@@ -16,7 +16,7 @@ package parser
 
 import (
 	"github.com/blockysource/blocky-aip/filtering/ast"
-	"github.com/blockysource/blocky-aip/filtering/token"
+	"github.com/blockysource/blocky-aip/token"
 )
 
 func putComparableExpr(e ast.ComparableExpr) {
@@ -43,28 +43,24 @@ func (p *Parser) parseComparableExpr() (ast.ComparableExpr, error) {
 	)
 	p.scanner.Peek(func(p token.Position, t token.Token, l string) bool {
 		pos, tok, lit = p, t, l
-		switch tok {
-		case token.STRING, token.TEXT, token.TIMESTAMP, token.MINUS,
-			token.NOT, token.AND, token.OR, token.IN: // (keywords)
+		if tok.IsLiteral() || tok.IsKeyword() {
 			return true
 		}
 		return false
 	})
 
-	switch tok {
-	case token.STRING, token.TEXT, token.TIMESTAMP, token.MINUS:
-	case token.BRACE_OPEN:
+	switch {
+	case tok.IsLiteral(), tok.IsKeyword():
+	case tok == token.BRACE_OPEN:
 		return p.parseStructExpr(nil)
-	case token.BRACKET_OPEN:
+	case tok == token.BRACKET_OPEN:
 		// This is returned from scanner only when arrays are enabled.
 		return p.parseArrayExpr(pos)
 	default:
-		if !tok.IsKeyword() {
-			if p.err != nil {
-				p.err(pos, "comparable: STRING, TEXT or Keyword expected but got: '"+lit+"'")
-			}
-			return nil, ErrInvalidFilterSyntax
+		if p.err != nil {
+			p.err(pos, "comparable: STRING, TEXT or Keyword expected but got: '"+lit+"'")
 		}
+		return nil, ErrInvalidFilterSyntax
 	}
 	nameParts := getNameParts()
 	nameParts = append(nameParts, namePart{
@@ -73,26 +69,13 @@ func (p *Parser) parseComparableExpr() (ast.ComparableExpr, error) {
 		tok: tok,
 	})
 
-	wasMinus := tok == token.MINUS
 	var i int
 	for {
 		if i > 0 {
 			pos, tok, lit = p.scanner.Scan()
-			switch tok {
-			case token.TEXT, token.TIMESTAMP:
-				if wasMinus {
-					wasMinus = false
-				}
-			case token.STRING:
-				if wasMinus {
-					// Invalid syntax.
-					if p.err != nil {
-						p.err(pos, "comparable: a '-' character is not allowed before a STRING")
-					}
-					return nil, ErrInvalidFilterSyntax
-				}
-			case token.MINUS:
-				wasMinus = true
+			switch {
+			case tok == token.STRING:
+			case tok.IsNonStringLit() || tok.IsKeyword():
 			default:
 				if !tok.IsKeyword() {
 					if p.err != nil {
@@ -118,15 +101,12 @@ func (p *Parser) parseComparableExpr() (ast.ComparableExpr, error) {
 			return false
 		})
 
-		if p.useStructs && pt == token.BRACE_OPEN {
-			// This is a struct literal
+		switch pt {
+		case token.BRACE_OPEN:
 			return p.parseStructExpr(nameParts)
-		}
-
-		switch {
-		case pt == token.PERIOD || wasMinus:
+		case token.PERIOD:
 			i++
-		case pt == token.LPAREN:
+		case token.LPAREN:
 			// This is a function call.
 			return p.parseFuncCall(nameParts)
 		default:

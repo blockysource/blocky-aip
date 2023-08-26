@@ -17,12 +17,12 @@ package protofiltering
 import (
 	"fmt"
 	"strconv"
-	"strings"
 
 	"google.golang.org/protobuf/reflect/protoreflect"
 
 	"github.com/blockysource/blocky-aip/expr"
 	"github.com/blockysource/blocky-aip/filtering/ast"
+	"github.com/blockysource/blocky-aip/token"
 )
 
 // TryParseFloatField tries to parse a float field.
@@ -49,74 +49,43 @@ func (b *Interpreter) TryParseFloatField(ctx *ParseContext, in TryParseValueInpu
 			return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field cannot accept string literal as a value")}, ErrInvalidValue
 		}
 		return TryParseValueResult{}, ErrInvalidValue
-	case *ast.KeywordExpr:
-		// Keyword expression cannot be a float value.
-		if ctx.ErrHandler != nil {
-			return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field cannot accept keyword expression as a value")}, ErrInvalidValue
-		}
-		return TryParseValueResult{}, ErrInvalidValue
 	case *ast.TextLiteral:
-		// Only the text literal can be a float value.
-		if len(in.Args) == 0 {
-			if in.IsNullable && ft.Value == "null" {
-				ve := expr.AcquireValueExpr()
-				ve.Value = nil
-				return TryParseValueResult{Expr: ve}, nil
-			}
-			// This is a non fractial numeric value.
-			// Try parsing it as an integer.
-			v, err := strconv.ParseInt(ft.Value, 10, 64)
-			if err != nil {
-				if ctx.ErrHandler != nil {
-					return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field is of %q type, but provided value is not valid: '%s'", in.Field.Kind(), ft.Value)}, ErrInvalidValue
-				}
-				return TryParseValueResult{}, ErrInvalidValue
-			}
-			ve := expr.AcquireValueExpr()
-			ve.Value = float64(v)
-			return TryParseValueResult{Expr: ve}, nil
-		}
-
 		// There cannot be more than one argument for period separated float.
-		if len(in.Args) > 1 {
+		if len(in.Args) > 0 {
 			if ctx.ErrHandler != nil {
 				return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field is of %q type, but provided value is not valid: '%s'", in.Field.Kind(), ft.Value)}, ErrInvalidValue
 			}
 			return TryParseValueResult{}, ErrInvalidValue
 		}
+		// Only the text literal can be a float value.
+		if in.IsNullable && ft.Token == token.NULL {
+			ve := expr.AcquireValueExpr()
+			ve.Value = nil
+			return TryParseValueResult{Expr: ve}, nil
+		}
 
-		var fractal string
-		// This is a fractal numeric value.
-		// Try parsing it as a float.
-		switch at := in.Args[0].(type) {
-		case *ast.TextLiteral:
-			fractal = at.Value
-		default:
+		if !ft.Token.IsNumber() {
 			if ctx.ErrHandler != nil {
-				return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field is of %q type, but provided value is not valid: '%s'", in.Field.Kind(), ft.Value+"."+at.String())}, ErrInvalidValue
+				return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field is of %q type, but provided value is not valid: '%s'", in.Field.Kind(), ft.Value)}, ErrInvalidValue
 			}
 			return TryParseValueResult{}, ErrInvalidValue
 		}
-
-		var sb strings.Builder
-		sb.WriteString(ft.Value)
-		sb.WriteRune('.')
-		sb.WriteString(fractal)
-
 		bs := 64
 		if in.Field.Kind() == protoreflect.FloatKind {
 			bs = 32
 		}
-		v, err := strconv.ParseFloat(sb.String(), bs)
+		// This is a non fractial numeric value.
+		// Try parsing it as an integer.
+		v, err := strconv.ParseFloat(ft.Value, bs)
 		if err != nil {
 			if ctx.ErrHandler != nil {
-				return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field is of %q type, but provided value is not valid: '%s'", in.Field.Kind(), ft.Value+"."+fractal)}, ErrInvalidValue
+				return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field is of %q type, but provided value is not valid: '%s'", in.Field.Kind(), ft.Value)}, ErrInvalidValue
 			}
 			return TryParseValueResult{}, ErrInvalidValue
 		}
 		ve := expr.AcquireValueExpr()
 		ve.Value = v
-		return TryParseValueResult{Expr: ve, ArgsUsed: 1}, nil
+		return TryParseValueResult{Expr: ve}, nil
 	case *ast.ArrayExpr:
 		// Parse each element of the array.
 		// If any element is not a valid float value, return an error.

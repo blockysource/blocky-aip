@@ -20,8 +20,8 @@ import (
 
 	"github.com/blockysource/blocky-aip/expr"
 	"github.com/blockysource/blocky-aip/filtering/protofiltering"
-	"github.com/blockysource/blocky-aip/filtering/token"
 	"github.com/blockysource/blocky-aip/internal/testpb"
+	"github.com/blockysource/blocky-aip/token"
 )
 
 var msgDesc = new(testpb.Message).ProtoReflect().Descriptor()

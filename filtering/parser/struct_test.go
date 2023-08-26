@@ -146,21 +146,12 @@ func testStructExpr(t *testing.T, pf *ParsedFilter) {
 		t.Fatalf("expected text literal got: %T", f1v.Value)
 	}
 
-	if tl.Value != "0" {
-		t.Fatalf("expected '0' got: %v", tl.Value)
+	if tl.Value != "0.3" {
+		t.Fatalf("expected '0.3' got: %v", tl.Value)
 	}
 
-	if len(f1v.Fields) != 1 {
+	if len(f1v.Fields) != 0 {
 		t.Fatalf("expected no fields got: %v", len(f1v.Fields))
-	}
-
-	tl, ok = f1v.Fields[0].(*ast.TextLiteral)
-	if !ok {
-		t.Fatalf("expected text literal got: %T", f1v.Fields[0])
-	}
-
-	if tl.Value != "3" {
-		t.Fatalf("expected '3' got: %v", tl.Value)
 	}
 
 	f2 := st.Elements[1]
@@ -211,21 +202,12 @@ func testStructExpr(t *testing.T, pf *ParsedFilter) {
 		t.Fatalf("expected text literal got: %T", f2v.Value)
 	}
 
-	if tl.Value != "15" {
+	if tl.Value != "15.6" {
 		t.Fatalf("expected '15' got: %v", tl.Value)
 	}
 
-	if len(f2v.Fields) != 1 {
-		t.Fatalf("expected one field got: %v", len(f2v.Fields))
-	}
-
-	tl, ok = f2v.Fields[0].(*ast.TextLiteral)
-	if !ok {
-		t.Fatalf("expected text literal got: %T", f2v.Fields[0])
-	}
-
-	if tl.Value != "6" {
-		t.Fatalf("expected '6' got: %v", tl.Value)
+	if len(f2v.Fields) != 0 {
+		t.Fatalf("expected no field got: %v", len(f2v.Fields))
 	}
 
 	if st.RBrace != 29 {
@@ -362,21 +344,12 @@ func testStructExprWithNewLines(t *testing.T, pf *ParsedFilter) {
 		t.Fatalf("expected text literal got: %T", f1v.Value)
 	}
 
-	if tl.Value != "0" {
+	if tl.Value != "0.3" {
 		t.Fatalf("expected '0' got: %v", tl.Value)
 	}
 
-	if len(f1v.Fields) != 1 {
+	if len(f1v.Fields) != 0 {
 		t.Fatalf("expected no fields got: %v", len(f1v.Fields))
-	}
-
-	tl, ok = f1v.Fields[0].(*ast.TextLiteral)
-	if !ok {
-		t.Fatalf("expected text literal got: %T", f1v.Fields[0])
-	}
-
-	if tl.Value != "3" {
-		t.Fatalf("expected '3' got: %v", tl.Value)
 	}
 
 	f2 := st.Elements[1]
@@ -427,21 +400,12 @@ func testStructExprWithNewLines(t *testing.T, pf *ParsedFilter) {
 		t.Fatalf("expected text literal got: %T", f2v.Value)
 	}
 
-	if tl.Value != "15" {
-		t.Fatalf("expected '15' got: %v", tl.Value)
+	if tl.Value != "15.6" {
+		t.Fatalf("expected '15.6' got: %v", tl.Value)
 	}
 
-	if len(f2v.Fields) != 1 {
-		t.Fatalf("expected one field got: %v", len(f2v.Fields))
-	}
-
-	tl, ok = f2v.Fields[0].(*ast.TextLiteral)
-	if !ok {
-		t.Fatalf("expected text literal got: %T", f2v.Fields[0])
-	}
-
-	if tl.Value != "6" {
-		t.Fatalf("expected '6' got: %v", tl.Value)
+	if len(f2v.Fields) != 0 {
+		t.Fatalf("expected no field got: %v", len(f2v.Fields))
 	}
 
 	if st.RBrace != 33 {
@@ -578,23 +542,13 @@ func testStructExprWithNewLinesEndedWithComma(t *testing.T, pf *ParsedFilter) {
 		t.Fatalf("expected text literal got: %T", f1v.Value)
 	}
 
-	if tl.Value != "0" {
-		t.Fatalf("expected '0' got: %v", tl.Value)
+	if tl.Value != "0.3" {
+		t.Fatalf("expected '0.3' got: %v", tl.Value)
 	}
 
-	if len(f1v.Fields) != 1 {
+	if len(f1v.Fields) != 0 {
 		t.Fatalf("expected no fields got: %v", len(f1v.Fields))
 	}
-
-	tl, ok = f1v.Fields[0].(*ast.TextLiteral)
-	if !ok {
-		t.Fatalf("expected text literal got: %T", f1v.Fields[0])
-	}
-
-	if tl.Value != "3" {
-		t.Fatalf("expected '3' got: %v", tl.Value)
-	}
-
 	f2 := st.Elements[1]
 	if f2.Name == nil {
 		t.Fatal("expected field name")
@@ -643,21 +597,12 @@ func testStructExprWithNewLinesEndedWithComma(t *testing.T, pf *ParsedFilter) {
 		t.Fatalf("expected text literal got: %T", f2v.Value)
 	}
 
-	if tl.Value != "15" {
-		t.Fatalf("expected '15' got: %v", tl.Value)
+	if tl.Value != "15.6" {
+		t.Fatalf("expected '15.6' got: %v", tl.Value)
 	}
 
-	if len(f2v.Fields) != 1 {
+	if len(f2v.Fields) != 0 {
 		t.Fatalf("expected one field got: %v", len(f2v.Fields))
-	}
-
-	tl, ok = f2v.Fields[0].(*ast.TextLiteral)
-	if !ok {
-		t.Fatalf("expected text literal got: %T", f2v.Fields[0])
-	}
-
-	if tl.Value != "6" {
-		t.Fatalf("expected '6' got: %v", tl.Value)
 	}
 
 	if st.RBrace != 34 {

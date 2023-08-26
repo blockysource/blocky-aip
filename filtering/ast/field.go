@@ -17,7 +17,7 @@ package ast
 import (
 	"strings"
 
-	"github.com/blockysource/blocky-aip/filtering/token"
+	"github.com/blockysource/blocky-aip/token"
 )
 
 // FieldExpr may be either a value or a keyword.

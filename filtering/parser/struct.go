@@ -18,7 +18,7 @@ import (
 	"sync"
 
 	"github.com/blockysource/blocky-aip/filtering/ast"
-	"github.com/blockysource/blocky-aip/filtering/token"
+	"github.com/blockysource/blocky-aip/token"
 )
 
 var (
@@ -89,12 +89,13 @@ func (p *Parser) parseStructExpr(nameParts []namePart) (*ast.StructExpr, error) 
 	p.scanner.SkipWhitespace()
 
 	for _, np := range nameParts {
-		switch np.tok {
-		case token.TEXT, token.AND, token.OR, token.NOT:
+		switch {
+		case np.tok == token.IDENT, np.tok.IsKeyword():
 			// NOTE: struct name doesn't support token.TIMESTAMP.
 			text := getTextLiteral()
 			text.Pos = np.pos
 			text.Value = np.lit
+			text.Token = np.tok
 			st.Name = append(st.Name, text)
 		default:
 			if p.err != nil {
@@ -132,7 +133,7 @@ func (p *Parser) parseStructExpr(nameParts []namePart) (*ast.StructExpr, error) 
 		var pt token.Token
 		p.scanner.Peek(func(pos token.Position, tok token.Token, lit string) bool {
 			pt = tok
-			if tok == token.COMMA && i > 0 {
+			if i > 0 && tok == token.COMMA {
 				return true
 			}
 			return false
@@ -180,18 +181,18 @@ func (p *Parser) parseStructExpr(nameParts []namePart) (*ast.StructExpr, error) 
 func (p *Parser) parseStructFieldExpr() (*ast.StructFieldExpr, error) {
 	sf := getStructFieldExpr()
 	pos, tok, lit := p.scanner.Scan()
-	switch tok {
-	case token.TEXT, token.TIMESTAMP, token.AND, token.OR, token.NOT:
-		text := getTextLiteral()
-		text.Pos = pos
-		text.Value = lit
-		text.IsTimestamp = tok == token.TIMESTAMP
-		sf.Name = append(sf.Name, text)
-	case token.STRING:
+	switch {
+	case tok == token.STRING:
 		sl := getStringLiteral()
 		sl.Pos = pos
 		sl.Value = lit
 		sf.Name = append(sf.Name, sl)
+	case tok.IsNonStringLit() || tok.IsKeyword():
+		text := getTextLiteral()
+		text.Pos = pos
+		text.Value = lit
+		text.Token = tok
+		sf.Name = append(sf.Name, text)
 	default:
 		if p.err != nil {
 			p.err(pos, "struct: TEXT, STRING or KEYWORD expected but got: '"+lit+"'")
@@ -204,28 +205,31 @@ func (p *Parser) parseStructFieldExpr() (*ast.StructFieldExpr, error) {
 	for {
 		if i > 0 {
 			pos, tok, lit = p.scanner.Scan()
-			switch tok {
-			case token.TEXT, token.TIMESTAMP, token.AND, token.OR, token.NOT:
-				text := getTextLiteral()
-				text.Pos = pos
-				text.Value = lit
-				text.IsTimestamp = tok == token.TIMESTAMP
-				sf.Name = append(sf.Name, text)
-			case token.STRING:
+			switch {
+			case tok == token.STRING:
 				sl := getStringLiteral()
 				sl.Pos = pos
 				sl.Value = lit
 				sf.Name = append(sf.Name, sl)
+			case tok.IsNonStringLit() || tok.IsKeyword():
+				text := getTextLiteral()
+				text.Pos = pos
+				text.Value = lit
+				text.Token = tok
+				sf.Name = append(sf.Name, text)
 			default:
-				if !tok.IsKeyword() {
-					if p.err != nil {
-						p.err(pos, "comparable: STRING, TEXT or Keyword expected but got: '"+lit+"'")
-					}
-					putStructFieldExpr(sf)
-					return nil, ErrInvalidFilterSyntax
+
+				if p.err != nil {
+					p.err(pos, "comparable: STRING, TEXT or Keyword expected but got: '"+lit+"'")
 				}
+				putStructFieldExpr(sf)
+				return nil, ErrInvalidFilterSyntax
+
 			}
 		}
+
+		p.scanner.SkipWhitespace()
+
 		var pt token.Token
 		p.scanner.Peek(func(pos token.Position, tok token.Token, lit string) bool {
 			// Expects a dot

@@ -110,14 +110,24 @@ func (b *Interpreter) TryParseSelectorExpr(ctx *ParseContext, value ast.ValueExp
 		return res, ErrInvalidValue
 	}
 
-	fi := b.getFieldInfo(field)
+	fi := b.msgInfo.GetFieldInfo(field)
 
-	if fi.forbidden {
+	if fi.Forbidden {
 		// Cannot traverse through fields that forbid filtering.
 		var res TryParseValueResult
 		if ctx.ErrHandler != nil {
 			res.ErrPos = value.Position()
 			res.ErrMsg = fmt.Sprintf("field: %q forbids filtering, cannot get nested field", field.Name())
+		}
+		return res, ErrInvalidValue
+	}
+
+	if fi.InputOnly {
+		// Cannot traverse through input only fields.
+		var res TryParseValueResult
+		if ctx.ErrHandler != nil {
+			res.ErrPos = value.Position()
+			res.ErrMsg = fmt.Sprintf("field: %q is an input only field, cannot get nested field", field.Name())
 		}
 		return res, ErrInvalidValue
 	}
@@ -128,14 +138,14 @@ func (b *Interpreter) TryParseSelectorExpr(ctx *ParseContext, value ast.ValueExp
 		fe := expr.AcquireFieldSelectorExpr()
 		fe.Message = ctx.Message.FullName()
 		fe.Field = field.Name()
-		fe.FieldComplexity = fi.complexity
+		fe.FieldComplexity = fi.Complexity
 		return TryParseValueResult{Expr: fe}, nil
 	}
 
 	root := expr.AcquireFieldSelectorExpr()
 	root.Message = field.Parent().(protoreflect.MessageDescriptor).FullName()
 	root.Field = field.Name()
-	root.FieldComplexity = fi.complexity
+	root.FieldComplexity = fi.Complexity
 	parentFieldX := root
 	pmd := field.Parent().(protoreflect.MessageDescriptor)
 	pfd := field
@@ -157,14 +167,25 @@ func (b *Interpreter) TryParseSelectorExpr(ctx *ParseContext, value ast.ValueExp
 				return res, ErrInvalidValue
 			}
 
-			pfi := b.getFieldInfo(pfd)
+			pfi := b.msgInfo.GetFieldInfo(pfd)
 
-			if pfi.forbidden {
+			if pfi.Forbidden {
 				// Cannot traverse through fields that forbid filtering.
 				var res TryParseValueResult
 				if ctx.ErrHandler != nil {
 					res.ErrPos = rel.Position()
 					res.ErrMsg = fmt.Sprintf("field: %q forbids filtering, cannot get nested field", pt.Field)
+				}
+				root.Free()
+				return res, ErrInvalidValue
+			}
+
+			if pfi.InputOnly {
+				// Cannot traverse through input only fields.
+				var res TryParseValueResult
+				if ctx.ErrHandler != nil {
+					res.ErrPos = rel.Position()
+					res.ErrMsg = fmt.Sprintf("field: %q is an input only field, cannot get nested field", pt.Field)
 				}
 				root.Free()
 				return res, ErrInvalidValue
@@ -182,8 +203,9 @@ func (b *Interpreter) TryParseSelectorExpr(ctx *ParseContext, value ast.ValueExp
 
 				tvi := TryParseValueInput{
 					Field:      mk,
-					IsNullable: fi.nullable,
+					IsNullable: fi.Nullable,
 					Value:      rel,
+					Complexity: fi.Complexity,
 				}
 				var (
 					tvr TryParseValueResult
@@ -296,13 +318,13 @@ func (b *Interpreter) TryParseSelectorExpr(ctx *ParseContext, value ast.ValueExp
 					return res, ErrInvalidValue
 				}
 
-				fi = b.getFieldInfo(field)
+				fi = b.msgInfo.GetFieldInfo(field)
 
 				// Create a field expression and set it as the parent.
 				fe := expr.AcquireFieldSelectorExpr()
 				fe.Message = pt.Message
 				fe.Field = field.Name()
-				fe.FieldComplexity = fi.complexity
+				fe.FieldComplexity = fi.Complexity
 				parentFieldX.Traversal = fe
 				parent = fe
 				parentFieldX = fe
@@ -359,13 +381,13 @@ func (b *Interpreter) TryParseSelectorExpr(ctx *ParseContext, value ast.ValueExp
 				return res, ErrFieldNotFound
 			}
 
-			fi = b.getFieldInfo(field)
+			fi = b.msgInfo.GetFieldInfo(field)
 
 			// Create a field expression and set it as the parent.
 			fe := expr.AcquireFieldSelectorExpr()
 			fe.Message = msg.Message().(protoreflect.MessageDescriptor).FullName()
 			fe.Field = field.Name()
-			fe.FieldComplexity = fi.complexity
+			fe.FieldComplexity = fi.Complexity
 
 			// Set up the traversal in the map key parent expression.
 			pt.Traversal = fe

@@ -38,7 +38,11 @@ func AcquireOrExpr() *OrExpr {
 	return orExprPool.Get().(*OrExpr)
 }
 
-var _ FilterExpr = (*OrExpr)(nil)
+// Compile-time check to verify that OrExpr implements Expr and FilterExpr interface.
+var (
+	_ FilterExpr = (*OrExpr)(nil)
+	_ Expr       = (*OrExpr)(nil)
+)
 
 // OrExpr is an expression that envelops multiple expressions
 // into a logical OR group.
@@ -50,20 +54,20 @@ type OrExpr struct {
 }
 
 // Clone returns a copy of the current expression.
-func (e *OrExpr) Clone() FilterExpr {
+func (e *OrExpr) Clone() Expr {
 	if e == nil {
 		return nil
 	}
 
 	clone := AcquireOrExpr()
 	for _, expr := range e.Expr {
-		clone.Expr = append(clone.Expr, expr.Clone())
+		clone.Expr = append(clone.Expr, expr.Clone().(FilterExpr))
 	}
 	return clone
 }
 
 // Equals returns true if the given expression is equal to the current one.
-func (e *OrExpr) Equals(other FilterExpr) bool {
+func (e *OrExpr) Equals(other Expr) bool {
 	if e == nil || other == nil {
 		return false
 	}

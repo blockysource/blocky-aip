@@ -19,6 +19,7 @@ import (
 
 	"github.com/blockysource/blocky-aip/expr"
 	"github.com/blockysource/blocky-aip/internal/testpb"
+	"github.com/blockysource/blocky-aip/token"
 )
 
 var md = new(testpb.Message).ProtoReflect().Descriptor()
@@ -216,8 +217,8 @@ func TestParser_Parse(t *testing.T) {
 	}
 }
 
-func testErrHandler(t testing.TB, isErr bool) func(pos int, msg string) {
-	return func(pos int, msg string) {
+func testErrHandler(t testing.TB, isErr bool) func(pos token.Position, msg string) {
+	return func(pos token.Position, msg string) {
 		if !isErr {
 			t.Errorf("unexpected error: %s", msg)
 		}

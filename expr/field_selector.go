@@ -39,21 +39,11 @@ func AcquireFieldSelectorExpr() *FieldSelectorExpr {
 	return fieldSelectorExpr.Get().(*FieldSelectorExpr)
 }
 
-// Free puts the FieldSelectorExpr back to the pool.
-func (e *FieldSelectorExpr) Free() {
-	if e.Traversal != nil {
-		e.Traversal.Free()
-		e.Traversal = nil
-	}
-	if e.isAcquired {
-		e.Message = ""
-		e.Field = ""
-		e.FieldComplexity = 0
-		fieldSelectorExpr.Put(e)
-	}
-}
-
-var _ FilterExpr = (*FieldSelectorExpr)(nil)
+// Compile-time check to verify that FieldSelectorExpr implements Expr and FilterExpr interface.
+var (
+	_ FilterExpr = (*FieldSelectorExpr)(nil)
+	_ Expr       = (*FieldSelectorExpr)(nil)
+)
 
 // FieldSelectorExpr is a literal that represents a message field or a path of fields.
 // It describes the expression "a.b.c" where b is a field of a, and c is a field of b.
@@ -78,7 +68,7 @@ type FieldSelectorExpr struct {
 }
 
 // Clone returns a copy of the FieldSelectorExpr.
-func (e *FieldSelectorExpr) Clone() FilterExpr {
+func (e *FieldSelectorExpr) Clone() Expr {
 	if e == nil {
 		return nil
 	}
@@ -87,12 +77,12 @@ func (e *FieldSelectorExpr) Clone() FilterExpr {
 	clone.Field = e.Field
 	clone.FieldComplexity = e.FieldComplexity
 	if e.Traversal != nil {
-		clone.Traversal = e.Traversal.Clone()
+		clone.Traversal = e.Traversal.Clone().(FilterExpr)
 	}
 	return clone
 }
 
-func (e *FieldSelectorExpr) Equals(o FilterExpr) bool {
+func (e *FieldSelectorExpr) Equals(o Expr) bool {
 	if e == nil && o == nil {
 		return true
 	}
@@ -121,6 +111,20 @@ func (e *FieldSelectorExpr) Equals(o FilterExpr) bool {
 		return false
 	}
 	return true
+}
+
+// Free puts the FieldSelectorExpr back to the pool.
+func (e *FieldSelectorExpr) Free() {
+	if e.Traversal != nil {
+		e.Traversal.Free()
+		e.Traversal = nil
+	}
+	if e.isAcquired {
+		e.Message = ""
+		e.Field = ""
+		e.FieldComplexity = 0
+		fieldSelectorExpr.Put(e)
+	}
 }
 
 // Complexity returns the complexity of the field literal.

@@ -17,6 +17,7 @@ syntax = "proto3";
 package testpb;
 
 import "blocky/api/annotations.proto";
+import "google/api/field_behavior.proto";
 import "google/protobuf/duration.proto";
 import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
@@ -153,4 +154,6 @@ message Message {
     Enum oneof_enum = 102;
     Message oneof_msg = 103;
   }
+
+  string input_only_str = 104 [(google.api.field_behavior) = INPUT_ONLY];
 }

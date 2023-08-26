@@ -18,6 +18,7 @@ import (
 	"sync"
 
 	"github.com/blockysource/blocky-aip/filtering/ast"
+	"github.com/blockysource/blocky-aip/token"
 )
 
 var (
@@ -104,10 +105,6 @@ var (
 				Args: make([]ast.ArgExpr, 0, 10),
 			}
 		},
-	}
-
-	keywordExprPool = sync.Pool{
-		New: func() any { return &ast.KeywordExpr{} },
 	}
 )
 
@@ -298,7 +295,7 @@ func putTextLiteral(e *ast.TextLiteral) {
 	}
 	e.Pos = 0
 	e.Value = ""
-	e.IsTimestamp = false
+	e.Token = token.ILLEGAL
 	textLiteralPool.Put(e)
 }
 
@@ -354,22 +351,7 @@ func putNameExpr(e ast.NameExpr) {
 	switch vt := e.(type) {
 	case *ast.TextLiteral:
 		putTextLiteral(vt)
-	case *ast.KeywordExpr:
-		putKeywordExpr(vt)
 	}
-}
-
-func putKeywordExpr(e *ast.KeywordExpr) {
-	if e == nil {
-		return
-	}
-	e.Pos = 0
-	e.Typ = 0
-	keywordExprPool.Put(e)
-}
-
-func getKeywordExpr() *ast.KeywordExpr {
-	return keywordExprPool.Get().(*ast.KeywordExpr)
 }
 
 func putFieldExpr(e ast.FieldExpr) {
@@ -379,7 +361,7 @@ func putFieldExpr(e ast.FieldExpr) {
 	switch vt := e.(type) {
 	case *ast.TextLiteral:
 		putTextLiteral(vt)
-	case *ast.KeywordExpr:
-		putKeywordExpr(vt)
+	case *ast.StringLiteral:
+		putStringLiteral(vt)
 	}
 }

@@ -18,7 +18,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/blockysource/blocky-aip/filtering/token"
+	"github.com/blockysource/blocky-aip/token"
 )
 
 // Compile-time checks that *TextLiteral implements ValueExpr, FieldExpr, and NameExpr.
@@ -40,8 +40,8 @@ type TextLiteral struct {
 	// Value is a raw value of the text literal.
 	Value string
 
-	// IsTimestamp is true if the text literal is an RFC3339 timestamp.
-	IsTimestamp bool
+	// Token is the token type of the text literal.
+	Token token.Token
 }
 
 // WriteStringTo writes the string representation of the value to the builder.

@@ -15,19 +15,23 @@
 package scanner
 
 import (
+	"fmt"
 	"strings"
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/blockysource/blocky-aip/filtering/token"
+	"github.com/blockysource/blocky-aip/token"
 )
 
+// Scanner is a token scanner.
 type Scanner struct {
 	src string
 
 	// scanning state
 	ch              rune // current character
-	offset          int  // character offset
+	pch             rune // previous character
+	prev            token.Token
+	offset          int // character offset
 	err             ErrorHandler
 	useStructs      bool
 	useArrays       bool
@@ -42,20 +46,27 @@ type Scanner struct {
 		lit      string
 		isPeeked bool
 	}
+	useOrdering bool
 }
 
+// New creates a new scanner for the src string.
+func New(src string, err ErrorHandler) *Scanner {
+	s := &Scanner{}
+	s.Reset(src, err)
+
+	return s
+}
+
+// ErrorHandler is an error message handler.
 type ErrorHandler func(pos token.Position, msg string)
 
 // Reset prepares the scanner s to tokenize the text src by setting the scanner at the beginning of src.
-func (s *Scanner) Reset(src string, err ErrorHandler, useStructs, useArray, useIn bool) {
+func (s *Scanner) Reset(src string, err ErrorHandler) {
 	s.src = src
 	s.err = err
 	s.ch = ' '
+	s.pch = ' '
 	s.offset = 0
-
-	s.useStructs = useStructs
-	s.useArrays = useArray
-	s.useInComparator = useIn
 	s.ErrorCount = 0
 	s.initialized = true
 
@@ -138,7 +149,7 @@ func (s *Scanner) scanOrPeekToken() (pos token.Position, tok token.Token, lit st
 
 	pos = s.pos()
 	var (
-		isText, isString bool
+		isText, isString, isNumeric bool
 	)
 	switch s.ch {
 	case ' ', '\t', '\n', '\r':
@@ -159,12 +170,23 @@ func (s *Scanner) scanOrPeekToken() (pos token.Position, tok token.Token, lit st
 	case ',':
 		tok = token.COMMA
 		lit = ","
+	case '*':
+		tok = token.ASTERISK
+		lit = "*"
 	case '.':
 		tok = token.PERIOD
 		lit = "."
+		// Check if this is a path separator by checking if previous token was literal.
+		if !s.prev.IsLiteral() {
+			// This is a numeric after a period.
+			isNumeric = true
+		}
 	case '-':
 		tok = token.MINUS
 		lit = "-"
+		if p := s.peek(); isDecimal(p) || p == '.' {
+			isNumeric = true
+		}
 	case '<':
 		if s.peek() == '=' {
 			s.next()
@@ -199,48 +221,45 @@ func (s *Scanner) scanOrPeekToken() (pos token.Position, tok token.Token, lit st
 	case eof:
 		tok = token.EOF
 	case '[':
-		if s.useArrays {
-			tok = token.BRACKET_OPEN
-			lit = "["
-		} else {
-			isText = true
-		}
+		tok = token.BRACKET_OPEN
+		lit = "["
 	case ']':
-		if s.useArrays {
-			tok = token.BRACKET_CLOSE
-			lit = "]"
-		} else {
-			isText = true
-		}
+		tok = token.BRACKET_CLOSE
+		lit = "]"
 	case '{':
-		if s.useStructs {
-			tok = token.BRACE_OPEN
-			lit = "{"
-		} else {
-			isText = true
-		}
+		tok = token.BRACE_OPEN
+		lit = "{"
 	case '}':
-		if s.useStructs {
-			tok = token.BRACE_CLOSE
-			lit = "}"
+		tok = token.BRACE_CLOSE
+		lit = "}"
+	case '0':
+		// This is number or numeric.
+		isNumeric = true
+	default:
+		if isDecimal(s.ch) {
+			isNumeric = true
 		} else {
 			isText = true
 		}
-	default:
-		isText = true
 	}
 
-	if !isText && !isString {
+	if !isText && !isString && !isNumeric {
 		s.next() // consume the token character
 		return
 	}
-	if isString {
+
+	switch {
+	case isString:
 		tok = token.STRING
 		lit = s.scanString()
-	} else {
+	case isNumeric:
+		tok, lit = s.scanNumber()
+	case isText:
 		tok, lit = s.scanText()
 
 		switch lit {
+		case "true", "false":
+			tok = token.BOOLEAN
 		case "AND":
 			tok = token.AND
 		case "OR":
@@ -248,17 +267,24 @@ func (s *Scanner) scanOrPeekToken() (pos token.Position, tok token.Token, lit st
 		case "NOT":
 			tok = token.NOT
 		case "IN":
-			if s.useInComparator {
-				tok = token.IN
-			}
+			tok = token.IN
+		case "ASC", "asc":
+			tok = token.ASC
+		case "DESC", "desc":
+			tok = token.DESC
+		case "null":
+			tok = token.NULL
 		}
 	}
+
+	s.prev = tok
 	return
 }
 
 func (s *Scanner) scanString() string {
 	// opening quote is already consumed
 	isEscape := false
+	open := s.ch
 	var sb strings.Builder
 	for {
 		ch, _ := s.next()
@@ -272,7 +298,7 @@ func (s *Scanner) scanString() string {
 			isEscape = true
 			continue
 		}
-		if isQuote(ch) {
+		if ch == open {
 			if isEscape {
 				sb.WriteRune(ch)
 				isEscape = false
@@ -286,121 +312,29 @@ func (s *Scanner) scanString() string {
 	return sb.String()
 }
 
-func isQuote(ch rune) bool {
-	return ch == '\'' || ch == '"'
-}
-
 func (s *Scanner) scanText() (token.Token, string) {
-	offset := s.offset
-	sum := 0
+	sum := utf8.RuneLen(s.ch)
+	offset := s.offset - sum
 
-	var (
-		colonCount           int
-		firstColonBreakpoint Breakpoint
-		firstColonSum        int
-		thirdColonBreakpoint Breakpoint
-		thirdColonSum        int
-		gotEOF               bool
-	)
-	// RFC3339 Timestamp format: 2006-01-02T15:04:05Z07:00
 	for {
 		ch, w := s.next()
+		if isBreaking(ch) {
+			break
+		}
 		sum += w
-		if isEOF(ch) {
-			gotEOF = true
-			break
-		}
 
-		if s.useArrays && (ch == '[' || ch == ']') {
-			break
-		}
-		if s.useStructs && (ch == '{' || ch == '}') {
-			break
-		}
-
-		if ch == ':' {
-			colonCount++
-			if colonCount == 1 {
-				firstColonSum = sum
-				firstColonBreakpoint = s.Breakpoint()
-			}
-			if colonCount == 3 {
-				thirdColonSum = sum
-				thirdColonBreakpoint = s.Breakpoint()
-			}
-
-			// At most a timestamp can have 3 colons.
-			// If we have more than 3 colons, it either is a timestamp with a comparator (has)
-			if colonCount > 3 {
-				break
-			}
+		if isLetter(ch) || isDecimal(ch) || ch == '_' {
 			continue
 		}
 
-		if isWhitespace(ch) || isPeriod(ch) || ch == '(' || ch == ')' || ch == ',' || s.isComparator(ch) {
-			break
-		}
+		s.error(s.offset, fmt.Sprintf("invalid character: %q", ch))
+		return token.ILLEGAL, ""
 	}
-	var lit string
-	if gotEOF {
-		lit = s.src[offset-1:]
-	} else {
-		lit = s.src[offset-1 : offset+sum-1]
-	}
-	switch colonCount {
-	case 0:
-		// This is a simple text literal.
-		return token.TEXT, lit
-	case 2:
-		// This might be an RFC3339 timestamp without timezone colon.
-		// i.e.: 2006-01-02T15:04:05Z (UTC)
-		// Verify that the literal is a valid timestamp.
-		isTimestamp := isValidTimestamp(lit)
-		if isTimestamp {
-			return token.TIMESTAMP, lit
-		}
 
-		// Otherwise, we need to restore the scanner to the first colon.
-		s.Restore(firstColonBreakpoint)
-		return token.TEXT, s.src[offset-1 : offset+firstColonSum-1]
-	case 3:
-		// This might be an RFC3339 timestamp with timezone colon.
-		// i.e.: 2006-01-02T15:04:05Z07:00 (UTC)
-		// Verify that the literal is a valid timestamp.
-		isTimestamp := isValidTimestamp(lit)
-		if isTimestamp {
-			return token.TIMESTAMP, lit
-		}
+	lit := s.src[offset : offset+sum]
 
-		// Otherwise, lets check the literal up to the third colon,
-		// it might be a timestamp without timezone colon along with a comparator.
-		// i.e.: map.2006-01-02T15:04:05Z:any value related with the timestamp map key.
-		// Where the '2006-01-02T15:04:05Z' is a timestamp, the ':' is a comparator.
-		lit = s.src[offset-1 : offset+thirdColonSum-1]
-		isTimestamp = isValidTimestamp(lit)
-		if isTimestamp {
-			s.Restore(thirdColonBreakpoint)
-			return token.TIMESTAMP, lit
-		}
-		s.Restore(firstColonBreakpoint)
-		return token.TEXT, s.src[offset-1 : offset+firstColonSum-1]
-	case 4:
-		// This might be a timestamp with timezone and a comparator.
-		// i.e.: map.2006-01-02T15:04:05Z07:00:any value related with the timestamp map key.
-		// Where the '2006-01-02T15:04:05Z07:00' is a timestamp, the ':' is a comparator.
-		lit = s.src[offset-1 : offset+thirdColonSum-1]
-		isTimestamp := isValidTimestamp(lit)
-		if isTimestamp {
-			s.Restore(thirdColonBreakpoint)
-			return token.TIMESTAMP, lit
-		}
-		s.Restore(firstColonBreakpoint)
-		return token.TEXT, s.src[offset-1 : offset+firstColonSum-1]
-	default:
-		// We need to restore the scanner to the first colon.
-		s.Restore(firstColonBreakpoint)
-		return token.TEXT, s.src[offset-1 : offset+firstColonSum-1]
-	}
+	// This is a simple text literal.
+	return token.IDENT, lit
 }
 
 func isLetter(ch rune) bool {
@@ -413,11 +347,12 @@ func (s *Scanner) next() (ch rune, w int) {
 	if s.offset < len(s.src) {
 		ch, w := utf8.DecodeRuneInString(s.src[s.offset:])
 		s.offset += w
+		s.pch = s.ch
 		s.ch = ch
 		return ch, w
 	}
 	s.ch = eof
-	return s.ch, utf8.RuneLen(rune(eof))
+	return s.ch, 1
 }
 
 func (s *Scanner) peek() rune {
@@ -497,4 +432,192 @@ func (s *Scanner) isComparator(ch rune) bool {
 		}
 	}
 	return false
+}
+
+func (s *Scanner) scanNumber() (token.Token, string) {
+	if s.ch == '.' {
+		return s.scanNumeric(1)
+	}
+
+	// Check if it is not a timestamp in RFC3339 format.
+	offset := s.offset - 1
+	sum := 1
+
+	isNegative := s.ch == '-'
+
+	tok := token.INT
+	if s.ch == '0' {
+		peek := s.peek()
+		switch {
+		case peek == 'x', peek == 'X':
+			_, w := s.next()
+			sum += w
+			tok = token.HEX
+		case peek == 'o':
+			_, w := s.next()
+			sum += w
+			tok = token.OCT
+		case isOctalDigit(peek):
+			tok = token.OCT
+		case peek == '.':
+			return s.scanNumeric(1)
+		case isDurationPrefix(peek):
+			return s.scanDuration(1, false, false)
+		case isBreaking(peek):
+			s.next()
+			return token.INT, s.src[offset : offset+sum]
+		default:
+			// This might be a timestamp in RFC3339 format.
+			// i.e.: 0001-01-01T00:00:00Z
+			return s.scanTimestamp(1)
+		}
+	}
+
+	count := 1
+	for {
+		ch, w := s.next()
+		if isNonPeriodBreaking(ch) {
+			break
+		}
+		count++
+
+		if isPeriod(ch) {
+			return s.scanNumeric(count)
+		}
+
+		sum += w
+
+		if tok == token.HEX {
+			if !isHexDigit(ch) {
+				s.error(s.offset, "invalid hexadecimal")
+				return token.ILLEGAL, ""
+			}
+			continue
+		}
+
+		if count == 5 {
+			if ch == '-' {
+				// Check if the '-' is a timestamp separator of a year.
+				if tok == token.HEX || isNegative {
+					return token.INT, s.src[offset : offset+sum]
+				}
+				return s.scanTimestamp(count)
+			}
+		}
+
+		if tok == token.OCT {
+			if !isOctalDigit(ch) {
+				s.error(s.offset, "invalid octal")
+				return token.ILLEGAL, ""
+			}
+			continue
+		}
+
+		if !isDecimal(ch) {
+			if isDurationPrefix(ch) {
+				return s.scanDuration(count, false, false)
+			}
+			s.error(s.offset, "invalid decimal")
+			return token.ILLEGAL, ""
+		}
+	}
+
+	return tok, s.src[offset : offset+sum]
+}
+
+func (s *Scanner) scanNumeric(used int) (token.Token, string) {
+	offset := s.offset
+	offset -= used
+	sum := used
+
+	if s.ch != '.' {
+		ch, w := s.next()
+		sum += w
+		if ch != '.' {
+			panic("expected '.'")
+		}
+	}
+
+	// If the next character is not a digit, then this is not a numeric,
+	// but rather a text literal.
+	// We need to revert the offset and return the INT token.
+	if !isDecimal(s.peek()) {
+		return token.INT, s.src[offset : offset+sum-1]
+	}
+
+	var (
+		isExp     bool
+		isExpSign bool
+		hasExp    bool
+	)
+	for {
+		ch, w := s.next()
+
+		if isBreaking(ch) {
+			break
+		}
+		sum += w
+
+		switch ch {
+		case 'e', 'E':
+			if isExp || isExpSign {
+				s.error(offset, "invalid numeric")
+				return token.ILLEGAL, ""
+			}
+			isExp = true
+			hasExp = true
+			continue
+		case '+', '-':
+			if isExpSign || !isExp {
+				s.error(offset, "invalid numeric")
+				return token.ILLEGAL, ""
+			}
+			isExp = false
+			isExpSign = true
+			continue
+		}
+		isExpSign = false
+
+		if !isDecimal(ch) {
+			if isDurationPrefix(ch) {
+				return s.scanDuration(sum, true, hasExp)
+			}
+			s.error(offset, "invalid decimal")
+			return token.ILLEGAL, ""
+		}
+
+		if isExp {
+			isExp = false
+		}
+
+	}
+
+	if isExp || isExpSign {
+		s.error(offset, "invalid numeric")
+		return token.ILLEGAL, ""
+	}
+
+	return token.NUMERIC, s.src[offset : offset+sum]
+}
+
+func isHexDigit(ch rune) bool {
+	return '0' <= ch && ch <= '9' || 'a' <= lower(ch) && lower(ch) <= 'f'
+}
+
+func isOctalDigit(ch rune) bool {
+	return '0' <= ch && ch <= '7'
+}
+
+func isBreaking(ch rune) bool {
+	return isEOF(ch) || isWhitespace(ch) || isPeriod(ch) || ch == '(' || ch == ')' || ch == ',' || isComparator(ch) ||
+		ch == ']' || ch == '}' || ch == '[' || ch == '{'
+}
+
+func isComparator(ch rune) bool {
+	return ch == '=' || ch == '<' || ch == '>' || ch == ':' || ch == '!'
+}
+
+func isNonPeriodBreaking(ch rune) bool {
+	return isEOF(ch) || isWhitespace(ch) || ch == '(' || ch == ')' || ch == ',' || isComparator(ch) ||
+		ch == ']' || ch == '}' || ch == '[' || ch == '{'
 }

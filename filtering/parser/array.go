@@ -18,7 +18,7 @@ import (
 	"sync"
 
 	"github.com/blockysource/blocky-aip/filtering/ast"
-	"github.com/blockysource/blocky-aip/filtering/token"
+	"github.com/blockysource/blocky-aip/token"
 )
 
 var arrayExprPool = &sync.Pool{

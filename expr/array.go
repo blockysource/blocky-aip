@@ -38,18 +38,12 @@ func AcquireArrayExpr() *ArrayExpr {
 	return arrayExprPool.Get().(*ArrayExpr)
 }
 
-// Free puts the ArrayExpr back to the pool.
-func (e *ArrayExpr) Free() {
-	if e == nil {
-		return
-	}
-	if e.isAcquired {
-		e.Elements = e.Elements[:0]
-		arrayExprPool.Put(e)
-	}
-}
-
-var _ FilterExpr = (*ArrayExpr)(nil)
+// Compile-time check to verify that ArrayExpr implements Expr, FilterExpr and UpdateValueExpr interface.
+var (
+	_ FilterExpr      = (*ArrayExpr)(nil)
+	_ Expr            = (*ArrayExpr)(nil)
+	_ UpdateValueExpr = (*ArrayExpr)(nil)
+)
 
 // ArrayExpr is an expression that can be
 // represented as an array of expressions.
@@ -61,19 +55,19 @@ type ArrayExpr struct {
 }
 
 // Clone returns a copy of the ArrayExpr.
-func (e *ArrayExpr) Clone() FilterExpr {
+func (e *ArrayExpr) Clone() Expr {
 	if e == nil {
 		return nil
 	}
 	clone := AcquireArrayExpr()
 	for _, expr := range e.Elements {
-		clone.Elements = append(clone.Elements, expr.Clone())
+		clone.Elements = append(clone.Elements, expr.Clone().(FilterExpr))
 	}
 	return clone
 }
 
 // Equals returns true if the given expression is equal to the current one.
-func (e *ArrayExpr) Equals(other FilterExpr) bool {
+func (e *ArrayExpr) Equals(other Expr) bool {
 	if other == nil {
 		return false
 	}
@@ -95,9 +89,21 @@ func (e *ArrayExpr) Equals(other FilterExpr) bool {
 	return true
 }
 
+// Free puts the ArrayExpr back to the pool.
+func (e *ArrayExpr) Free() {
+	if e == nil {
+		return
+	}
+	if e.isAcquired {
+		e.Elements = e.Elements[:0]
+		arrayExprPool.Put(e)
+	}
+}
+
 // Complexity of the ArrayExpr is the number of values + 1.
 func (e *ArrayExpr) Complexity() int64 {
 	return 1 + int64(len(e.Elements))
 }
 
-func (e *ArrayExpr) isFilterExpr() {}
+func (e *ArrayExpr) isFilterExpr()      {}
+func (e *ArrayExpr) isUpdateValueExpr() {}

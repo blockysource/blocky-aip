@@ -50,7 +50,11 @@ func (x *ValueExpr) Free() {
 	valueExprPool.Put(x)
 }
 
-var _ FilterExpr = (*ValueExpr)(nil)
+// Compile-time check to verify that ValueExpr implements Expr and FilterExpr interface.
+var (
+	_ FilterExpr = (*ValueExpr)(nil)
+	_ Expr       = (*ValueExpr)(nil)
+)
 
 // ValueExpr is a simple value expression that contains a value.
 // The value may be of any type that matches related to this expression.
@@ -76,7 +80,7 @@ type ValueExpr struct {
 }
 
 // Clone returns a copy of the ValueExpr.
-func (x *ValueExpr) Clone() FilterExpr {
+func (x *ValueExpr) Clone() Expr {
 	if x == nil {
 		return nil
 	}
@@ -105,7 +109,7 @@ func (x *ValueExpr) Clone() FilterExpr {
 }
 
 // Equals returns true if the given expression is equal to the current one.
-func (x *ValueExpr) Equals(other FilterExpr) bool {
+func (x *ValueExpr) Equals(other Expr) bool {
 	if x == nil || other == nil {
 		return false
 	}
@@ -162,4 +166,5 @@ func (x *ValueExpr) Complexity() int64 {
 	return 1
 }
 
-func (*ValueExpr) isFilterExpr() {}
+func (*ValueExpr) isFilterExpr()      {}
+func (*ValueExpr) isUpdateValueExpr() {}

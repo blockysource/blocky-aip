@@ -17,7 +17,7 @@ package ast
 import (
 	"strings"
 
-	"github.com/blockysource/blocky-aip/filtering/token"
+	"github.com/blockysource/blocky-aip/token"
 )
 
 // FactorExpr is a factor expression which contains one or more disjunction terms.

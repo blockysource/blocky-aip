@@ -21,6 +21,7 @@ import (
 
 	"github.com/blockysource/blocky-aip/expr"
 	"github.com/blockysource/blocky-aip/filtering/ast"
+	"github.com/blockysource/blocky-aip/token"
 )
 
 // TryParseEnumField tries to parse an enum field.
@@ -46,19 +47,13 @@ func (b *Interpreter) TryParseEnumField(ctx *ParseContext, in TryParseValueInput
 	case *ast.StringLiteral:
 		sl = ft
 	case *ast.TextLiteral:
-		if in.IsNullable && ft.Value == "null" {
+		if in.IsNullable && ft.Token == token.NULL {
 			ve := expr.AcquireValueExpr()
 			ve.Value = nil
 			return TryParseValueResult{Expr: ve}, nil
 		}
 		if ctx.ErrHandler != nil {
 			return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field is of %q type, but provided value is not a valid value: '%s'. String literal required", in.Field.Enum().FullName(), ft.Value)}, ErrInvalidValue
-		}
-		return TryParseValueResult{}, ErrInvalidValue
-	case *ast.KeywordExpr:
-		// Keyword expression cannot be a enum value.
-		if ctx.ErrHandler != nil {
-			return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field cannot accept keyword expression as a value")}, ErrInvalidValue
 		}
 		return TryParseValueResult{}, ErrInvalidValue
 	case *ast.ArrayExpr:
@@ -71,6 +66,7 @@ func (b *Interpreter) TryParseEnumField(ctx *ParseContext, in TryParseValueInput
 				AllowIndirect: in.AllowIndirect,
 				IsNullable:    in.IsNullable,
 				Value:         elem,
+				Complexity:    in.Complexity,
 			})
 			if err != nil {
 				return res, err

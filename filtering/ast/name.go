@@ -17,7 +17,7 @@ package ast
 import (
 	"strings"
 
-	"github.com/blockysource/blocky-aip/filtering/token"
+	"github.com/blockysource/blocky-aip/token"
 )
 
 // NameExpr is a name expression which may be either

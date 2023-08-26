@@ -64,7 +64,7 @@ type AndExpr struct {
 }
 
 // Equals returns true if the given expression is equal to the current one.
-func (e *AndExpr) Equals(other FilterExpr) bool {
+func (e *AndExpr) Equals(other Expr) bool {
 	if other == nil {
 		return false
 	}
@@ -87,14 +87,14 @@ func (e *AndExpr) Equals(other FilterExpr) bool {
 }
 
 // Clone returns a deep copy of the AndExpr.
-func (e *AndExpr) Clone() FilterExpr {
+func (e *AndExpr) Clone() Expr {
 	if e == nil {
 		return nil
 	}
 
 	clone := AcquireAndExpr()
 	for _, expr := range e.Expr {
-		clone.Expr = append(clone.Expr, expr.Clone())
+		clone.Expr = append(clone.Expr, expr.Clone().(FilterExpr))
 	}
 	return clone
 }

@@ -16,7 +16,7 @@ package parser
 
 import (
 	"github.com/blockysource/blocky-aip/filtering/ast"
-	"github.com/blockysource/blocky-aip/filtering/token"
+	"github.com/blockysource/blocky-aip/token"
 )
 
 func (p *Parser) parseFuncCall(nameParts []namePart) (*ast.FunctionCall, error) {
@@ -26,27 +26,13 @@ func (p *Parser) parseFuncCall(nameParts []namePart) (*ast.FunctionCall, error) 
 	defer putNameParts(nameParts)
 
 	for _, np := range nameParts {
-		switch np.tok {
-		case token.TEXT, token.TIMESTAMP:
+		switch {
+		case np.tok == token.IDENT, np.tok.IsKeyword():
 			text := getTextLiteral()
 			text.Pos = np.pos
 			text.Value = np.lit
-			if np.tok == token.TIMESTAMP {
-				text.IsTimestamp = true
-			}
+			text.Token = np.tok
 			fl.Name = append(fl.Name, text)
-		case token.AND, token.OR, token.NOT:
-			kw := getKeywordExpr()
-			kw.Pos = np.pos
-			switch np.tok {
-			case token.AND:
-				kw.Typ = ast.AND
-			case token.OR:
-				kw.Typ = ast.OR
-			case token.NOT:
-				kw.Typ = ast.NOT
-			}
-			fl.Name = append(fl.Name, kw)
 		default:
 			if p.err != nil {
 				p.err(np.pos, "function: TEXT, AND, OR or NOT expected but got: "+np.lit)

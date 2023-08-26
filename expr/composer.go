@@ -44,14 +44,14 @@ func (c *Composer) Reset(md protoreflect.MessageDescriptor) {
 	c.Desc = md
 }
 
-// Select parses the selector and returns a field selector expression.
-func (c *Composer) Select(selector string) (*FieldSelectorExpr, error) {
-	if selector == "" {
+// Field parses the selector and returns a field selector expression.
+func (c *Composer) Field(field string) (*FieldSelectorExpr, error) {
+	if field == "" {
 		return nil, ErrComposerEmptySelector
 
 	}
 
-	s, err := c.parseSelector(selector)
+	s, err := c.parseSelector(field)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +62,7 @@ func (c *Composer) Select(selector string) (*FieldSelectorExpr, error) {
 // MustSelect parses the selector and returns a field selector expression.
 // It panics if the selector is invalid.
 func (c *Composer) MustSelect(selector string) *FieldSelectorExpr {
-	s, err := c.Select(selector)
+	s, err := c.Field(selector)
 	if err != nil {
 		panic(err)
 	}

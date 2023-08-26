@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/blockysource/blocky-aip/filtering/token"
+	"github.com/blockysource/blocky-aip/token"
 )
 
 // Compile-

@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/blockysource/blocky-aip/filtering/token"
+	"github.com/blockysource/blocky-aip/token"
 )
 
 // ComparatorLiteral is the literal of a comparator with a position and type.

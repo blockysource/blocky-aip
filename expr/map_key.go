@@ -37,27 +37,11 @@ func AcquireMapKeyExpr() *MapKeyExpr {
 	return mapKeyExprPool.Get().(*MapKeyExpr)
 }
 
-// Free puts the MapKeyExpr back to the pool.
-func (e *MapKeyExpr) Free() {
-	if e == nil {
-		return
-	}
-	if e.Key != nil {
-		e.Key.Free()
-		e.Key = nil
-	}
-	if e.Traversal != nil {
-		e.Traversal.Free()
-		e.Traversal = nil
-	}
-	if !e.isAcquired {
-		return
-	}
-	*e = MapKeyExpr{}
-	mapKeyExprPool.Put(e)
-}
-
-var _ FilterExpr = (*MapKeyExpr)(nil)
+// Compile-time check to verify that MapKeyExpr implements Expr and FilterExpr interface.
+var (
+	_ FilterExpr = (*MapKeyExpr)(nil)
+	_ Expr       = (*MapKeyExpr)(nil)
+)
 
 // MapKeyExpr is an expression that represents a map field - key.
 // This expression might be used for filtering map key presence or
@@ -72,24 +56,24 @@ type MapKeyExpr struct {
 }
 
 // Clone returns a copy of the MapKeyExpr.
-func (e *MapKeyExpr) Clone() FilterExpr {
+func (e *MapKeyExpr) Clone() Expr {
 	if e == nil {
 		return nil
 	}
 
 	mk := AcquireMapKeyExpr()
 	if e.Key != nil {
-		mk.Key = e.Key.Clone()
+		mk.Key = e.Key.Clone().(FilterExpr)
 	}
 
 	if e.Traversal != nil {
-		mk.Traversal = e.Traversal.Clone()
+		mk.Traversal = e.Traversal.Clone().(FilterExpr)
 	}
 	return mk
 }
 
 // Equals returns true if the given expression is equal to the current one.
-func (e *MapKeyExpr) Equals(other FilterExpr) bool {
+func (e *MapKeyExpr) Equals(other Expr) bool {
 	if e == nil || other == nil {
 		return false
 	}
@@ -120,6 +104,26 @@ func (e *MapKeyExpr) Complexity() int64 {
 		c += e.Traversal.Complexity()
 	}
 	return c
+}
+
+// Free puts the MapKeyExpr back to the pool.
+func (e *MapKeyExpr) Free() {
+	if e == nil {
+		return
+	}
+	if e.Key != nil {
+		e.Key.Free()
+		e.Key = nil
+	}
+	if e.Traversal != nil {
+		e.Traversal.Free()
+		e.Traversal = nil
+	}
+	if !e.isAcquired {
+		return
+	}
+	*e = MapKeyExpr{}
+	mapKeyExprPool.Put(e)
 }
 
 func (e *MapKeyExpr) isFilterExpr() {}

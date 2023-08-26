@@ -97,6 +97,7 @@ func (b *Interpreter) HandleRestrictionExpr(ctx *ParseContext, x *ast.Restrictio
 			}
 		}
 
+		fi := b.msgInfo.GetFieldInfo(fd)
 		switch {
 		case mk != nil:
 			// If the left-hand side is a map key expr, set the field descriptor as map value.
@@ -105,14 +106,13 @@ func (b *Interpreter) HandleRestrictionExpr(ctx *ParseContext, x *ast.Restrictio
 			fd = fd.MapKey()
 		}
 
-		fi := b.getFieldInfo(fd)
-
 		// Try getting the value of the right hand side.
 		ve, err := b.TryParseValue(ctx, TryParseValueInput{
 			Field:         fd,
 			Value:         x.Arg,
 			AllowIndirect: true,
-			IsNullable:    fi.nullable,
+			IsNullable:    fi.Nullable,
+			Complexity:    fi.Complexity,
 		})
 		if err != nil {
 			// The right hand side is not a value expression, try parsing it as a selector.
@@ -672,6 +672,7 @@ func (b *Interpreter) HandleRestrictionExpr(ctx *ParseContext, x *ast.Restrictio
 			AllowIndirect: true,
 			Value:         x.Arg,
 			IsNullable:    fn.Returning.IsNullable,
+			Complexity:    fn.Complexity,
 		})
 		if err != nil {
 			// If the right hand side is not a value expression,

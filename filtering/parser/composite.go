@@ -16,7 +16,7 @@ package parser
 
 import (
 	"github.com/blockysource/blocky-aip/filtering/ast"
-	"github.com/blockysource/blocky-aip/filtering/token"
+	"github.com/blockysource/blocky-aip/token"
 )
 
 func (p *Parser) parseCompositeExpr() (*ast.CompositeExpr, error) {

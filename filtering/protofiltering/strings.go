@@ -19,6 +19,7 @@ import (
 
 	"github.com/blockysource/blocky-aip/expr"
 	"github.com/blockysource/blocky-aip/filtering/ast"
+	"github.com/blockysource/blocky-aip/token"
 )
 
 // TryParseStringField tries to parse a string field.
@@ -75,7 +76,7 @@ func (b *Interpreter) TryParseStringField(ctx *ParseContext, in TryParseValueInp
 			ve.Value = strValue
 			ve.PrefixWildcard = hasPrefixWildcard
 			ve.SuffixWildcard = hasSuffixWildcard
-			ve.SearchComplexity = GetFieldComplexity(in.Field)
+			ve.SearchComplexity = in.Complexity
 			return TryParseValueResult{Expr: ve, IsIndirect: true}, nil
 		}
 
@@ -83,7 +84,7 @@ func (b *Interpreter) TryParseStringField(ctx *ParseContext, in TryParseValueInp
 		ve.Value = ft.Value
 		return TryParseValueResult{Expr: ve}, nil
 	case *ast.TextLiteral:
-		if in.IsNullable && ft.Value == "null" {
+		if in.IsNullable && ft.Token == token.NULL {
 			ve := expr.AcquireValueExpr()
 			ve.Value = nil
 			return TryParseValueResult{Expr: ve}, nil
@@ -92,12 +93,6 @@ func (b *Interpreter) TryParseStringField(ctx *ParseContext, in TryParseValueInp
 		// Text literal cannot be a string value.
 		if ctx.ErrHandler != nil {
 			return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field cannot accept text literal as a value")}, ErrInvalidValue
-		}
-		return TryParseValueResult{}, ErrInvalidValue
-	case *ast.KeywordExpr:
-		// Keyword expression cannot be a string value.
-		if ctx.ErrHandler != nil {
-			return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field cannot accept keyword expression as a value")}, ErrInvalidValue
 		}
 		return TryParseValueResult{}, ErrInvalidValue
 	case *ast.ArrayExpr:
@@ -110,6 +105,7 @@ func (b *Interpreter) TryParseStringField(ctx *ParseContext, in TryParseValueInp
 				AllowIndirect: in.AllowIndirect,
 				IsNullable:    in.IsNullable,
 				Value:         elem,
+				Complexity:    in.Complexity,
 			})
 			if err != nil {
 				return res, err

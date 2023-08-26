@@ -37,7 +37,11 @@ func AcquireCompositeExpr() *CompositeExpr {
 	return compositeExprPool.Get().(*CompositeExpr)
 }
 
-var _ FilterExpr = (*CompositeExpr)(nil)
+// Compile-time check to verify that CompositeExpr implements Expr and FilterExpr interface.
+var (
+	_ FilterExpr = (*CompositeExpr)(nil)
+	_ Expr       = (*CompositeExpr)(nil)
+)
 
 // CompositeExpr is a composite expression that wraps current expression into logical group.
 type CompositeExpr struct {
@@ -48,20 +52,20 @@ type CompositeExpr struct {
 }
 
 // Clone returns a copy of the current expression.
-func (e *CompositeExpr) Clone() FilterExpr {
+func (e *CompositeExpr) Clone() Expr {
 	if e == nil {
 		return nil
 	}
 
 	clone := AcquireCompositeExpr()
 	if e.Expr != nil {
-		clone.Expr = e.Expr.Clone()
+		clone.Expr = e.Expr.Clone().(FilterExpr)
 	}
 	return clone
 }
 
 // Equals returns true if the given expression is equal to the current one.
-func (e *CompositeExpr) Equals(other FilterExpr) bool {
+func (e *CompositeExpr) Equals(other Expr) bool {
 	if e == nil || other == nil {
 		return false
 	}

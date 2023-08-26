@@ -19,6 +19,7 @@ import (
 
 	"github.com/blockysource/blocky-aip/expr"
 	"github.com/blockysource/blocky-aip/filtering/ast"
+	"github.com/blockysource/blocky-aip/token"
 )
 
 // TryParseBooleanField tries to parse a boolean field.
@@ -32,6 +33,13 @@ func (b *Interpreter) TryParseBooleanField(ctx *ParseContext, in TryParseValueIn
 		}
 		return TryParseValueResult{}, ErrInvalidValue
 	case *ast.TextLiteral:
+		if ft.Token != token.BOOLEAN {
+			if ctx.ErrHandler != nil {
+				return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field is of %q type, but provided value is not valid: '%s'", in.Field.Kind(), ft.Value)}, ErrInvalidValue
+			}
+			return TryParseValueResult{}, ErrInvalidValue
+		}
+
 		// Only the text literal can be a bool value.
 		switch {
 		case ft.Value == "true":
@@ -42,7 +50,7 @@ func (b *Interpreter) TryParseBooleanField(ctx *ParseContext, in TryParseValueIn
 			ve := expr.AcquireValueExpr()
 			ve.Value = false
 			return TryParseValueResult{Expr: ve}, nil
-		case in.IsNullable && ft.Value == "null":
+		case in.IsNullable && ft.Token == token.NULL:
 			ve := expr.AcquireValueExpr()
 			ve.Value = nil
 			return TryParseValueResult{Expr: ve}, nil
@@ -50,12 +58,6 @@ func (b *Interpreter) TryParseBooleanField(ctx *ParseContext, in TryParseValueIn
 		// Invalid boolean value.
 		if ctx.ErrHandler != nil {
 			return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field is of bool type, but provided value is not a valid bool value: '%s'", ft.Value)}, ErrInvalidValue
-		}
-		return TryParseValueResult{}, ErrInvalidValue
-	case *ast.KeywordExpr:
-		// Keyword expression cannot be a bool value.
-		if ctx.ErrHandler != nil {
-			return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field cannot accept keyword expression as a value")}, ErrInvalidValue
 		}
 		return TryParseValueResult{}, ErrInvalidValue
 	case *ast.ArrayExpr:
@@ -68,6 +70,7 @@ func (b *Interpreter) TryParseBooleanField(ctx *ParseContext, in TryParseValueIn
 				AllowIndirect: in.AllowIndirect,
 				IsNullable:    in.IsNullable,
 				Value:         elem,
+				Complexity:    in.Complexity,
 			})
 			if err != nil {
 				return res, err

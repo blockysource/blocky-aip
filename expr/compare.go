@@ -38,23 +38,6 @@ func AcquireCompareExpr() *CompareExpr {
 	return compareExprPool.Get().(*CompareExpr)
 }
 
-// Free puts the CompareExpr back to the pool.
-func (x *CompareExpr) Free() {
-	if x == nil {
-		return
-	}
-	x.Comparator = 0
-	if x.Left != nil {
-		x.Left.Free()
-	}
-	if x.Right != nil {
-		x.Right.Free()
-	}
-	if x.isAcquired {
-		compareExprPool.Put(x)
-	}
-}
-
 var _ FilterExpr = (*CompareExpr)(nil)
 
 // CompareExpr is a restriction
@@ -72,23 +55,23 @@ type CompareExpr struct {
 }
 
 // Clone returns a copy of the CompareExpr.
-func (x *CompareExpr) Clone() FilterExpr {
+func (x *CompareExpr) Clone() Expr {
 	if x == nil {
 		return nil
 	}
 	clone := AcquireCompareExpr()
 	clone.Comparator = x.Comparator
 	if x.Left != nil {
-		clone.Left = x.Left.Clone()
+		clone.Left = x.Left.Clone().(FilterExpr)
 	}
 	if x.Right != nil {
-		clone.Right = x.Right.Clone()
+		clone.Right = x.Right.Clone().(FilterExpr)
 	}
 	return clone
 }
 
 // Equals returns true if the given expression is equal to the current one.
-func (x *CompareExpr) Equals(other FilterExpr) bool {
+func (x *CompareExpr) Equals(other Expr) bool {
 	if other == nil {
 		return false
 	}
@@ -111,6 +94,23 @@ func (x *CompareExpr) Equals(other FilterExpr) bool {
 	}
 
 	return true
+}
+
+// Free puts the CompareExpr back to the pool.
+func (x *CompareExpr) Free() {
+	if x == nil {
+		return
+	}
+	x.Comparator = 0
+	if x.Left != nil {
+		x.Left.Free()
+	}
+	if x.Right != nil {
+		x.Right.Free()
+	}
+	if x.isAcquired {
+		compareExprPool.Put(x)
+	}
 }
 
 // Complexity returns the complexity of the expression.

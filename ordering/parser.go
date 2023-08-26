@@ -19,11 +19,12 @@ import (
 	"fmt"
 	"sync"
 
-	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
 	"github.com/blockysource/blocky-aip/expr"
-	blockyannnotations "github.com/blockysource/go-genproto/blocky/api/annotations"
+	"github.com/blockysource/blocky-aip/internal/info"
+	"github.com/blockysource/blocky-aip/scanner"
+	"github.com/blockysource/blocky-aip/token"
 )
 
 var (
@@ -46,23 +47,17 @@ var (
 // Parser parses an order by expression
 type Parser struct {
 	msgDesc    protoreflect.MessageDescriptor
-	errHandler ErrHandlerFn
+	errHandler scanner.ErrorHandler
 
-	fieldsInfo []fieldInfo
-	mut        sync.RWMutex
-}
-
-type fieldInfo struct {
-	fd         protoreflect.FieldDescriptor
-	complexity int64
-	forbidden  bool
+	msgInfo info.MessagesInfo
+	mut     sync.RWMutex
 }
 
 // ParserOpt is an option function for the parser.
 type ParserOpt func(p *Parser) error
 
 // ErrHandler sets the error handler for the parser.
-func ErrHandler(fn ErrHandlerFn) ParserOpt {
+func ErrHandler(fn scanner.ErrorHandler) ParserOpt {
 	return func(p *Parser) error {
 		p.errHandler = fn
 		return nil
@@ -71,13 +66,15 @@ func ErrHandler(fn ErrHandlerFn) ParserOpt {
 
 // NewParser creates a new parser with a message descriptor and optional error handler.
 func NewParser(msg protoreflect.MessageDescriptor, opts ...ParserOpt) (*Parser, error) {
-	p := &Parser{msgDesc: msg, fieldsInfo: make([]fieldInfo, 0, 10)}
+	p := &Parser{msgDesc: msg}
 
 	for _, opt := range opts {
 		if err := opt(p); err != nil {
 			return nil, err
 		}
 	}
+
+	p.msgInfo = info.MapMsgInfo(msg)
 
 	return p, nil
 }
@@ -87,37 +84,34 @@ func NewParser(msg protoreflect.MessageDescriptor, opts ...ParserOpt) (*Parser, 
 // If the error handler is nil, the parser will handling errors.
 func (p *Parser) Reset(msgDesc protoreflect.MessageDescriptor, opts ...ParserOpt) error {
 	p.msgDesc = msgDesc
-	if p.fieldsInfo != nil {
-		p.fieldsInfo = make([]fieldInfo, 0, 10)
-	} else {
-		p.fieldsInfo = p.fieldsInfo[:0]
-	}
 	for _, opt := range opts {
 		if err := opt(p); err != nil {
 			return err
 		}
 	}
 
+	p.msgInfo = info.MapMsgInfo(msgDesc)
+
 	return nil
 }
 
 // ErrHandlerFn is a function that handles errors
-type ErrHandlerFn func(pos int, msg string)
+type ErrHandlerFn func(pos token.Position, msg string)
 
 // Parse parses a sorting order option and returns an expression.
 func (p *Parser) Parse(orderBy string) (oe *expr.OrderByExpr, err error) {
-	var s scanner
-	s.init(orderBy)
+	var s scanner.Scanner
+	s.Reset(orderBy, p.errHandler)
 
 	// Check if the input is empty.
-	s.skipWhitespace()
+	s.SkipWhitespace()
 
-	var tk token
-	s.peekToken(func(p position, t token, l string) bool {
+	var tk token.Token
+	s.Peek(func(_ token.Position, t token.Token, _ string) bool {
 		tk = t
-		return tk == eof_tok
+		return tk == token.EOF
 	})
-	if tk == eof_tok {
+	if tk == token.EOF {
 		if p.errHandler != nil {
 			p.errHandler(0, "empty input")
 		}
@@ -128,16 +122,16 @@ func (p *Parser) Parse(orderBy string) (oe *expr.OrderByExpr, err error) {
 	oe = expr.AcquireOrderByExpr()
 	for {
 		// Scan next token, for the EOF or next field.
-		pos, tok, lit := s.scan()
-		if tok == eof_tok {
+		pos, tok, lit := s.Scan()
+		if tok == token.EOF {
 			// This means the end of the field order by expression
 			break
 		}
 
-		if tok != field_tok {
+		if !tok.IsIdent() {
 			oe.Free()
 			if p.errHandler != nil {
-				p.errHandler(int(pos), fmt.Sprintf("expected field name but got %q", lit))
+				p.errHandler(pos, fmt.Sprintf("expected field name but got %q", lit))
 			}
 			return nil, ErrInvalidSyntax
 		}
@@ -146,7 +140,7 @@ func (p *Parser) Parse(orderBy string) (oe *expr.OrderByExpr, err error) {
 		cur := expr.AcquireOrderByFieldExpr()
 
 		// Parse the field name literal.
-		fd, c, err := p.parseField(p.msgDesc, int(pos), lit)
+		fd, c, err := p.parseField(p.msgDesc, pos, lit)
 		if err != nil {
 			oe.Free()
 			return nil, err
@@ -158,30 +152,30 @@ func (p *Parser) Parse(orderBy string) (oe *expr.OrderByExpr, err error) {
 		cur.Field = fe
 
 		for {
-			var tk token
+			var tk token.Token
 			// Peek the token to see if there is traversal selector.
-			s.peekToken(func(_ position, t token, _ string) bool {
+			s.Peek(func(_ token.Position, t token.Token, _ string) bool {
 				tk = t
-				return tk == period_tok
+				return tk == token.PERIOD
 			})
 
 			// If there is no traversal selector, break the loop.
-			if tk != period_tok {
+			if tk != token.PERIOD {
 				break
 			}
 
 			// We're after a traversal 'dot' selector,
 			// so we need to parse the next field name.
-			pos, tok, lit = s.scan()
-			if tok != field_tok {
+			pos, tok, lit = s.Scan()
+			if !tok.IsIdent() {
 				oe.Free()
 				if p.errHandler != nil {
-					p.errHandler(int(pos), fmt.Sprintf("expected field name but got %s", tok))
+					p.errHandler(pos, fmt.Sprintf("expected field name but got %s", tok))
 				}
 				return nil, ErrInvalidSyntax
 			}
 
-			fd, c, err = p.parseField(fd.Message(), int(pos), lit)
+			fd, c, err = p.parseField(fd.Message(), pos, lit)
 			if err != nil {
 				oe.Free()
 				return nil, err
@@ -194,50 +188,50 @@ func (p *Parser) Parse(orderBy string) (oe *expr.OrderByExpr, err error) {
 			setLatestTraverseField(cur, fe)
 		}
 
-		s.skipWhitespace()
+		s.SkipWhitespace()
 
 		// Scan next token.
 		// It may either be a comma, order or EOF.
-		pos, tok, lit = s.scan()
+		pos, tok, lit = s.Scan()
 		switch tok {
-		case comma_tok:
+		case token.COMMA:
 			// This means the end of the field order by expression
 			oe.Fields = append(oe.Fields, cur)
 
-			s.skipWhitespace()
+			s.SkipWhitespace()
 			continue
-		case asc_tok:
+		case token.ASC:
 			cur.Order = expr.ASC
-		case desc_tok:
+		case token.DESC:
 			cur.Order = expr.DESC
-		case eof_tok:
+		case token.EOF:
 			oe.Fields = append(oe.Fields, cur)
 			return oe, nil
 		default:
 			if p.errHandler != nil {
-				p.errHandler(int(pos), fmt.Sprintf("expected comma, order or EOF but got %q", lit))
+				p.errHandler(pos, fmt.Sprintf("expected comma, order or EOF but got %q", lit))
 			}
 			oe.Free()
 			return nil, ErrInvalidSyntax
 		}
 
-		s.skipWhitespace()
+		s.SkipWhitespace()
 
 		// Scan next token, for the comma or EOF.
-		pos, tok, lit = s.scan()
+		pos, tok, lit = s.Scan()
 		switch tok {
-		case comma_tok:
+		case token.COMMA:
 			// This means the end of the field order by expression
 			oe.Fields = append(oe.Fields, cur)
 
-			s.skipWhitespace()
+			s.SkipWhitespace()
 			continue
-		case eof_tok:
+		case token.EOF:
 			oe.Fields = append(oe.Fields, cur)
 			return oe, nil
 		default:
 			if p.errHandler != nil {
-				p.errHandler(int(pos), fmt.Sprintf("expected comma or EOF but got %s", tok))
+				p.errHandler(pos, fmt.Sprintf("expected comma or EOF but got %s", tok))
 			}
 			oe.Free()
 			return nil, ErrInvalidSyntax
@@ -265,7 +259,7 @@ func setLatestTraverseField(obfe *expr.OrderByFieldExpr, fs *expr.FieldSelectorE
 	}
 }
 
-func (p *Parser) parseField(md protoreflect.MessageDescriptor, pos int, lit string) (protoreflect.FieldDescriptor, int64, error) {
+func (p *Parser) parseField(md protoreflect.MessageDescriptor, pos token.Position, lit string) (protoreflect.FieldDescriptor, int64, error) {
 	if lit == "" {
 		if p.errHandler != nil {
 			p.errHandler(pos, "expected field name")
@@ -279,7 +273,7 @@ func (p *Parser) parseField(md protoreflect.MessageDescriptor, pos int, lit stri
 		for i := 0; i < md.Oneofs().Len(); i++ {
 			of := md.Oneofs().Get(i)
 			fd = of.Fields().ByName(protoreflect.Name(lit))
-			if fd == nil {
+			if fd != nil {
 				found = true
 				break
 			}
@@ -292,63 +286,14 @@ func (p *Parser) parseField(md protoreflect.MessageDescriptor, pos int, lit stri
 		}
 	}
 
-	fi := p.getFieldInfo(fd)
+	fi := p.msgInfo.GetFieldInfo(fd)
 
-	if fi.forbidden {
+	if fi.Forbidden {
 		if p.errHandler != nil {
 			p.errHandler(pos, "ordering by given field is forbidden")
 		}
 		return nil, 0, ErrSortingForbidden
 	}
 
-	return fd, fi.complexity, nil
-}
-
-func (p *Parser) getFieldInfo(fd protoreflect.FieldDescriptor) fieldInfo {
-	var (
-		fi    fieldInfo
-		found bool
-	)
-	p.mut.RLock()
-	for i := 0; i < len(p.fieldsInfo); i++ {
-		fi = p.fieldsInfo[i]
-		if fi.fd == fd {
-			found = true
-			break
-		}
-	}
-	p.mut.RUnlock()
-	if !found {
-		p.mut.Lock()
-		fi = fieldInfo{
-			fd:         fd,
-			complexity: getFieldComplexity(fd),
-			forbidden:  isFieldSortingForbidden(fd),
-		}
-		p.fieldsInfo = append(p.fieldsInfo, fi)
-		p.mut.Unlock()
-	}
-	return fi
-}
-
-func getFieldComplexity(fd protoreflect.FieldDescriptor) int64 {
-	c, ok := proto.GetExtension(fd.Options(), blockyannnotations.E_Complexity).(int64)
-	if !ok || c == 0 {
-		return 1
-	}
-	return c
-}
-
-func isFieldSortingForbidden(fd protoreflect.FieldDescriptor) bool {
-	qp, ok := proto.GetExtension(fd.Options(), blockyannnotations.E_QueryOpt).([]blockyannnotations.FieldQueryOption)
-	if !ok {
-		return false
-	}
-
-	for _, p := range qp {
-		if p == blockyannnotations.FieldQueryOption_FORBID_SORTING {
-			return true
-		}
-	}
-	return false
+	return fd, fi.Complexity, nil
 }

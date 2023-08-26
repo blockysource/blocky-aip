@@ -20,8 +20,8 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 
 	"github.com/blockysource/blocky-aip/expr"
-	"github.com/blockysource/blocky-aip/filtering/token"
 	"github.com/blockysource/blocky-aip/internal/testpb"
+	"github.com/blockysource/blocky-aip/token"
 )
 
 var md = new(testpb.Message).ProtoReflect().Descriptor()
@@ -696,9 +696,15 @@ func TestInterpreter_Parse(t *testing.T) {
 			checkFn: testComplexExpression,
 		},
 		{
-			name: "one of i32 EQ direct",
-			filter: tstOneOfI32FieldEQDirect,
+			name:    "one of i32 EQ direct",
+			filter:  tstOneOfI32FieldEQDirect,
 			checkFn: testOneOfI32FieldEQDirect,
+		},
+		{
+			name:   "input only string",
+			filter: "input_only_str = \"test\"",
+			isErr:  true,
+			err:    ErrInvalidValue,
 		},
 	}
 	for _, tt := range tc {
@@ -762,7 +768,6 @@ func BenchmarkInterpreter_Parse(b *testing.B) {
 			filter:  `i32 = "invalid"`,
 			isError: true,
 		},
-
 	}
 
 	for _, bc := range benchs {
