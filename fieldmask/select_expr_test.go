@@ -313,6 +313,58 @@ func TestParser_ParseSelectExpr(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: "map key wildcard selector",
+			paths: []string{
+				"map_str_msg.*.name",
+			},
+			check: func(t *testing.T, x *expr.MessageSelectExpr) {
+				if len(x.Fields) != 1 {
+					t.Fatalf("unexpected number of fields: %d", len(x.Fields))
+				}
+				f := x.Fields[0]
+				if f.Field != "map_str_msg" {
+					t.Fatalf("unexpected field name: %s", f.Field)
+				}
+				if f.Traversal == nil {
+					t.Fatalf("unexpected traversal: %v", f.Traversal)
+				}
+				msk, ok := f.Traversal.(*expr.MapSelectKeysExpr)
+				if !ok {
+					t.Fatalf("unexpected traversal: %v", f.Traversal)
+				}
+
+				if len(msk.Keys) != 1 {
+					t.Fatalf("unexpected number of keys: %d", len(msk.Keys))
+				}
+				k := msk.Keys[0]
+				if k.Key == nil {
+					t.Fatalf("expected wildcard key but is nil")
+				}
+				_, ok = k.Key.(*expr.WildcardExpr)
+				if !ok {
+					t.Fatalf("expected wildcard key but is %T", k.Key)
+				}
+				// The traversal should be a MessageSelectExpr.
+				if k.Traversal == nil {
+					t.Fatalf("unexpected traversal: %v", k.Traversal)
+				}
+
+				subMS, ok := k.Traversal.(*expr.MessageSelectExpr)
+				if !ok {
+					t.Fatalf("unexpected traversal: %v", k.Traversal)
+				}
+
+				if len(subMS.Fields) != 1 {
+					t.Fatalf("unexpected number of fields: %d", len(subMS.Fields))
+				}
+
+				f = subMS.Fields[0]
+				if f.Field != "name" {
+					t.Fatalf("unexpected field name: %s", f.Field)
+				}
+			},
+		},
 	}
 
 	for _, tc := range tests {
