@@ -437,16 +437,37 @@ func (p *Parser) handleLastPathElem(ue *expr.UpdateExpr, curMsg protoreflect.Mes
 
 			// If the field is a valid message, then we create a sub UpdateExpression.
 			// This is done recursively.
-			subUe := expr.AcquireUpdateExpr()
-			if err = p.addMsgAllFieldsExpr(subUe, fv.Message()); err != nil {
-				subUe.Free()
-				return err
-			}
+			switch {
+			case fi.IsTimestamp:
+				// If the field is a timestamp, then we need to convert it to a time.Time.
+				ve := expr.AcquireValueExpr()
+				ve.Value = p.extractTimeValue(fv.Message())
+				ue.Elements = append(ue.Elements, expr.UpdateFieldValue{
+					Field: root,
+					Value: ve,
+				})
 
-			ue.Elements = append(ue.Elements, expr.UpdateFieldValue{
-				Field: root,
-				Value: subUe,
-			})
+			case fi.IsDuration:
+				// If the field is a duration, then we need to convert it to a time.Duration.
+				ve := expr.AcquireValueExpr()
+				ve.Value = p.extractDurationValue(fv.Message())
+				ue.Elements = append(ue.Elements, expr.UpdateFieldValue{
+					Field: root,
+					Value: ve,
+				})
+			default:
+				subUe := expr.AcquireUpdateExpr()
+
+				if err = p.addMsgAllFieldsExpr(subUe, fv.Message()); err != nil {
+					subUe.Free()
+					return err
+				}
+
+				ue.Elements = append(ue.Elements, expr.UpdateFieldValue{
+					Field: root,
+					Value: subUe,
+				})
+			}
 		}
 	case protoreflect.BoolKind:
 		if fi.Desc.Cardinality() == protoreflect.Repeated {

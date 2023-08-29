@@ -17,9 +17,12 @@ package fieldmask
 import (
 	"math"
 	"testing"
+	"time"
 
 	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/blockysource/blocky-aip/expr"
 	"github.com/blockysource/blocky-aip/internal/testpb"
@@ -607,6 +610,110 @@ func TestParseUpdateExpr(t *testing.T) {
 
 				if ev.Value != "value" {
 					t.Errorf("el.Value = %v, want 'value'", ev.Value)
+				}
+			},
+		},
+		{
+			name: "timestamp",
+			paths: []string{
+				"timestamp",
+			},
+			msg: &testpb.Message{
+				Timestamp: &timestamppb.Timestamp{
+					Nanos:   100,
+					Seconds: 100,
+				},
+			},
+			check: func(t *testing.T, x *expr.UpdateExpr) {
+				if x == nil {
+					t.Errorf("expr is nil")
+					return
+				}
+				if len(x.Elements) != 1 {
+					t.Errorf("len(expr.Elements) = %v, want 1", len(x.Elements))
+					return
+				}
+
+				el := x.Elements[0]
+				if el.Field == nil {
+					t.Errorf("el.Field is nil")
+					return
+				}
+				if el.Field.Field != "timestamp" {
+					t.Errorf("el.Field.Field = %v, want 'timestamp'", el.Field.Field)
+					return
+				}
+				if el.Field.Message != "testpb.Message" {
+					t.Errorf("el.Field.Message = %v, want testpb.Message", el.Field.Message)
+					return
+				}
+				ev, ok := el.Value.(*expr.ValueExpr)
+				if !ok {
+					t.Fatalf("el.Value is not a ValueExpr but %T", el.Value)
+				}
+
+				tv, ok := ev.Value.(time.Time)
+				if !ok {
+					t.Fatalf("el.Value is not a Timestamp but %T", ev.Value)
+				}
+
+				ts := timestamppb.Timestamp{Nanos: 100, Seconds: 100}
+				tm := ts.AsTime()
+
+				if !tv.Equal(tm) {
+					t.Errorf("el.Value = %v, want %v", tv, tm)
+				}
+			},
+		},
+		{
+			name: "duration",
+			paths: []string{
+				"duration",
+			},
+			msg: &testpb.Message{
+				Duration: &durationpb.Duration{
+					Nanos:   100,
+					Seconds: 100,
+				},
+			},
+			check: func(t *testing.T, x *expr.UpdateExpr) {
+				if x == nil {
+					t.Errorf("expr is nil")
+					return
+				}
+				if len(x.Elements) != 1 {
+					t.Errorf("len(expr.Elements) = %v, want 1", len(x.Elements))
+					return
+				}
+
+				el := x.Elements[0]
+				if el.Field == nil {
+					t.Errorf("el.Field is nil")
+					return
+				}
+				if el.Field.Field != "duration" {
+					t.Errorf("el.Field.Field = %v, want 'duration'", el.Field.Field)
+					return
+				}
+				if el.Field.Message != "testpb.Message" {
+					t.Errorf("el.Field.Message = %v, want testpb.Message", el.Field.Message)
+					return
+				}
+				ev, ok := el.Value.(*expr.ValueExpr)
+				if !ok {
+					t.Fatalf("el.Value is not a ValueExpr but %T", el.Value)
+				}
+
+				dv, ok := ev.Value.(time.Duration)
+				if !ok {
+					t.Fatalf("el.Value is not a Duration but %T", ev.Value)
+				}
+
+				ts := durationpb.Duration{Nanos: 100, Seconds: 100}
+				td := ts.AsDuration()
+
+				if dv != td {
+					t.Errorf("el.Value = %v, want %v", dv, td)
 				}
 			},
 		},
