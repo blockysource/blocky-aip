@@ -37,7 +37,7 @@ func (b *Interpreter) TryParseEnumField(ctx *ParseContext, in TryParseValueInput
 
 	if in.Field.Enum() == nil {
 		if ctx.ErrHandler != nil {
-			return TryParseValueResult{ErrPos: in.Value.Position(), ErrMsg: fmt.Sprintf("field is not an enum field")}, ErrInvalidValue
+			return TryParseValueResult{ErrPos: in.Value.Position(), ErrMsg: "field is not an enum field"}, ErrInvalidValue
 		}
 		return TryParseValueResult{}, ErrInvalidValue
 	}
@@ -86,7 +86,7 @@ func (b *Interpreter) TryParseEnumField(ctx *ParseContext, in TryParseValueInput
 					ve.Free()
 					res.Expr.Free()
 					if ctx.ErrHandler != nil {
-						return TryParseValueResult{ErrPos: elem.Position(), ErrMsg: fmt.Sprintf("field cannot accept function call or field selector expression as a value")}, ErrInvalidValue
+						return TryParseValueResult{ErrPos: elem.Position(), ErrMsg: "field cannot accept function call or field selector expression as a value"}, ErrInvalidValue
 					}
 					return TryParseValueResult{}, ErrInternal
 				}
@@ -98,7 +98,7 @@ func (b *Interpreter) TryParseEnumField(ctx *ParseContext, in TryParseValueInput
 	case *ast.StructExpr:
 		// A struct is not a valid enum.
 		if ctx.ErrHandler != nil {
-			return TryParseValueResult{ErrPos: ft.Position(), ErrMsg: fmt.Sprintf("field cannot accept struct expression as a value")}, ErrInvalidValue
+			return TryParseValueResult{ErrPos: ft.Position(), ErrMsg: "field cannot accept struct expression as a value"}, ErrInvalidValue
 		}
 		return TryParseValueResult{}, ErrInvalidValue
 	default:

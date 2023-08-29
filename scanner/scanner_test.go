@@ -62,7 +62,7 @@ func TestScanner(t *testing.T) {
 					t.Errorf("unexpected literal: %s", lit)
 				}
 
-				pos, tok, lit = s.Scan()
+				pos, tok, _ = s.Scan()
 				if pos != 4 {
 					t.Errorf("unexpected position: %d", pos)
 				}
@@ -83,7 +83,7 @@ func TestScanner(t *testing.T) {
 					t.Errorf("unexpected literal: %s", lit)
 				}
 
-				pos, tok, lit = s.Scan()
+				pos, tok, _ = s.Scan()
 				if pos != 9 {
 					t.Errorf("unexpected position: %d", pos)
 				}
@@ -247,7 +247,7 @@ func TestScanner(t *testing.T) {
 					t.Errorf("unexpected literal: %s", lit)
 				}
 
-				pos, tok, lit = s.Scan()
+				pos, tok, _ = s.Scan()
 				if pos != 4 {
 					t.Errorf("unexpected position: %d", pos)
 				}
@@ -284,7 +284,7 @@ func TestScanner(t *testing.T) {
 					t.Errorf("unexpected literal: %v", lit)
 				}
 
-				pos, tok, lit = s.Scan()
+				pos, tok, _ = s.Scan()
 				if pos != 4 {
 					t.Errorf("unexpected position: %v", pos)
 				}
@@ -321,7 +321,7 @@ func TestScanner(t *testing.T) {
 					t.Errorf("unexpected literal: %v", lit)
 				}
 
-				pos, tok, lit = s.Scan()
+				pos, tok, _ = s.Scan()
 				if pos != 3 {
 					t.Errorf("unexpected position: %v", pos)
 				}
@@ -358,7 +358,7 @@ func TestScanner(t *testing.T) {
 					t.Errorf("unexpected literal: %v", lit)
 				}
 
-				pos, tok, lit = s.Scan()
+				pos, tok, _ = s.Scan()
 				if pos != 4 {
 					t.Errorf("unexpected position: %v", pos)
 				}
@@ -395,7 +395,7 @@ func TestScanner(t *testing.T) {
 					t.Errorf("unexpected literal: %v", lit)
 				}
 
-				pos, tok, lit = s.Scan()
+				pos, tok, _ = s.Scan()
 				if pos != 4 {
 					t.Errorf("unexpected position: %v", pos)
 				}
@@ -416,7 +416,7 @@ func TestScanner(t *testing.T) {
 					t.Errorf("unexpected literal: %v", lit)
 				}
 
-				pos, tok, lit = s.Scan()
+				pos, tok, _ = s.Scan()
 				if pos != 8 {
 					t.Errorf("unexpected position: %v", pos)
 				}
@@ -469,12 +469,18 @@ func TestScanner(t *testing.T) {
 					t.Errorf("unexpected literal: %v", lit)
 				}
 
-				pos, tok, lit = s.Scan()
+				pos, tok, _ = s.Scan()
+				if pos != 4 {
+					t.Errorf("unexpected position: %v", pos)
+				}
 				if tok != token.PERIOD {
 					t.Errorf("unexpected token: %v", tok)
 				}
 
 				pos, tok, lit = s.Scan()
+				if pos != 5 {
+					t.Errorf("unexpected position: %v", pos)
+				}
 				if tok != token.INT {
 					t.Errorf("unexpected token: %v", tok)
 				}

@@ -20,9 +20,10 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
+	blockyannotations "github.com/blockysource/go-genproto/blocky/api/annotations"
+
 	"github.com/blockysource/blocky-aip/expr"
 	"github.com/blockysource/blocky-aip/filtering/ast"
-	blockyannotations "github.com/blockysource/go-genproto/blocky/api/annotations"
 )
 
 // FieldDescriptor is an interface that describes a field.
@@ -378,8 +379,7 @@ func (b *Interpreter) TryParseSelectorExpr(ctx *ParseContext, value ast.ValueExp
 			}
 
 			// Check the value of text literal in the map value message fields.
-			field = msg.Message().(protoreflect.MessageDescriptor).
-				Fields().ByName(protoreflect.Name(tl.Value))
+			field = msg.Message().Fields().ByName(protoreflect.Name(tl.Value))
 			if field == nil {
 				var res TryParseValueResult
 				if ctx.ErrHandler != nil {
@@ -394,7 +394,7 @@ func (b *Interpreter) TryParseSelectorExpr(ctx *ParseContext, value ast.ValueExp
 
 			// Create a field expression and set it as the parent.
 			fe := expr.AcquireFieldSelectorExpr()
-			fe.Message = msg.Message().(protoreflect.MessageDescriptor).FullName()
+			fe.Message = msg.Message().FullName()
 			fe.Field = field.Name()
 			fe.FieldComplexity = fi.Complexity
 

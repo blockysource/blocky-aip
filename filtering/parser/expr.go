@@ -55,10 +55,7 @@ func (p *Parser) parseExpr() (*ast.Expr, error) {
 		p.scanner.Peek(func(pos token.Position, tok token.Token, lit string) bool {
 			andT = tok
 			andPos = pos
-			if tok == token.AND {
-				return true
-			}
-			return false
+			return tok == token.AND
 		})
 
 		switch andT {

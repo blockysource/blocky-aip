@@ -119,6 +119,10 @@ func (p *Parser) parseSimpleExpr() (ast.SimpleExpr, error) {
 	return p.parseRestrictionExpr()
 }
 
+type nameParts struct {
+	parts []namePart
+}
+
 type namePart struct {
 	pos token.Position
 	lit string
@@ -127,24 +131,22 @@ type namePart struct {
 
 var namePartsPool = sync.Pool{
 	New: func() any {
-		return make([]namePart, 0, 10)
+		return &nameParts{
+			parts: make([]namePart, 0, 10),
+		}
 	},
 }
 
-func getNameParts() []namePart {
-	v := namePartsPool.Get()
-	if v == nil {
-		return nil
-	}
-	return v.([]namePart)
+func getNameParts() *nameParts {
+	return namePartsPool.Get().(*nameParts)
 }
 
-func putNameParts(nameParts []namePart) {
+func putNameParts(nameParts *nameParts) {
 	if nameParts == nil {
 		return
 	}
 
-	nameParts = nameParts[:0]
+	nameParts.parts = nameParts.parts[:0]
 	namePartsPool.Put(nameParts)
 }
 

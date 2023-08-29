@@ -502,9 +502,3 @@ func testF32FieldEQIndirect(t *testing.T, x expr.FilterExpr) {
 		t.Fatalf("expected field 'f32' field but got %s", tf.Field)
 	}
 }
-
-const tstF64FieldEQDirect = `f64 = 1`
-
-func testF64FieldEQDirect(t *testing.T, x expr.FilterExpr) {
-
-}

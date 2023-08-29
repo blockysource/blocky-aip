@@ -107,8 +107,6 @@ func (o *OrderByExpr) Complexity() int64 {
 	return complexity
 }
 
-func (o *OrderByExpr) isOrderExpr() {}
-
 // Equals returns true if the given expression is equal to the current one.
 func (o *OrderByExpr) Equals(order Expr) bool {
 	if o == nil || order == nil {
@@ -205,8 +203,6 @@ func (o *OrderByFieldExpr) Free() {
 func (o *OrderByFieldExpr) Complexity() int64 {
 	return o.Field.Complexity()
 }
-
-func (o *OrderByFieldExpr) isOrderExpr() {}
 
 // Order is an enum for the order of the order by expression
 type Order int

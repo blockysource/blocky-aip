@@ -28,15 +28,12 @@ type Scanner struct {
 	src string
 
 	// scanning state
-	ch              rune // current character
-	pch             rune // previous character
-	prev            token.Token
-	offset          int // character offset
-	err             ErrorHandler
-	useStructs      bool
-	useArrays       bool
-	useInComparator bool
-	ErrorCount      int
+	ch         rune // current character
+	pch        rune // previous character
+	prev       token.Token
+	offset     int // character offset
+	err        ErrorHandler
+	ErrorCount int
 
 	initialized bool
 
@@ -46,7 +43,6 @@ type Scanner struct {
 		lit      string
 		isPeeked bool
 	}
-	useOrdering bool
 }
 
 // New creates a new scanner for the src string.
@@ -370,10 +366,6 @@ const (
 	bom = 0xFEFF // byte order mark, only permitted as very first character
 	eof = -1
 )
-
-func (s *Scanner) backup() {
-	s.offset -= utf8.RuneLen(s.ch)
-}
 
 func (s *Scanner) skipWhitespace() int {
 	var n int

@@ -73,26 +73,26 @@ type (
 	// If the function does not contain a returning declaration, then it is service called function expression,
 	// and it needs to be validated by the service.
 	FunctionCallDeclaration struct {
-	// Name is a unique identifier of the function call.
-	Name FunctionName
+		// Name is a unique identifier of the function call.
+		Name FunctionName
 
-	// Arguments is a list of arguments of the function call.
-	// If empty then the function call has no arguments.
-	Arguments []*FunctionCallArgumentDeclaration
+		// Arguments is a list of arguments of the function call.
+		// If empty then the function call has no arguments.
+		Arguments []*FunctionCallArgumentDeclaration
 
-	// Returning is an optional returning declaration of the function call.
-	// If this field is undefined, this function always returns an expr.FunctionCall expression.
-	// This is then named as a service called function call.
-	// It can be used for any purpose of the filter, but needs to be validated on the service side.
-	// A function call declaration without a returning declaration cannot be used as an argument of another function call.
-	Returning *FunctionCallReturningDeclaration
+		// Returning is an optional returning declaration of the function call.
+		// If this field is undefined, this function always returns an expr.FunctionCall expression.
+		// This is then named as a service called function call.
+		// It can be used for any purpose of the filter, but needs to be validated on the service side.
+		// A function call declaration without a returning declaration cannot be used as an argument of another function call.
+		Returning *FunctionCallReturningDeclaration
 
-	// CallFn is the execution function of the function call.
-	// It is called when the function call is executed.
-	CallFn FunctionCallFn
-	// Complexity is the complexity of the function call.
-	Complexity int64
-}
+		// CallFn is the execution function of the function call.
+		// It is called when the function call is executed.
+		CallFn FunctionCallFn
+		// Complexity is the complexity of the function call.
+		Complexity int64
+	}
 	// FunctionName is the name of the function call.
 	FunctionName struct {
 		// PkgName is the name of the package where the function is defined.
@@ -386,7 +386,7 @@ func (b *Interpreter) TryParseFunctionCall(ctx *ParseContext, in TryParseValueIn
 	if in.Value == nil {
 		var res TryParseValueResult
 		if ctx.ErrHandler != nil {
-			res.ErrMsg = fmt.Sprintf("function call expected, got nil")
+			res.ErrMsg = "function call expected, got nil"
 		}
 		return res, ErrInternal
 	}
@@ -647,7 +647,7 @@ func (b *Interpreter) tryParseAndCallFunction(ctx *ParseContext, x *ast.Function
 				Value:         at.Value,
 				Args:          at.Fields,
 				AllowIndirect: ad.Indirect,
-				Complexity: 1,
+				Complexity:    1,
 			})
 			if err != nil {
 				// The member expression is not a valid value expression.
@@ -888,7 +888,7 @@ func (b *Interpreter) tryParseAndCallFunction(ctx *ParseContext, x *ast.Function
 				Field:         ad,
 				Value:         at,
 				AllowIndirect: ad.Indirect,
-				Complexity: 1,
+				Complexity:    1,
 			})
 			if err != nil {
 				clearArgs()
@@ -914,7 +914,7 @@ func (b *Interpreter) tryParseAndCallFunction(ctx *ParseContext, x *ast.Function
 				Field:         ad,
 				Value:         at,
 				AllowIndirect: ad.Indirect,
-				Complexity: 1,
+				Complexity:    1,
 			})
 			if err != nil {
 				clearArgs()

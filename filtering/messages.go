@@ -51,7 +51,7 @@ func (b *Interpreter) TryParseMessageStructField(ctx *ParseContext, in TryParseV
 	case *ast.StringLiteral:
 		// String literal cannot be a struct | nullable value.
 		if ctx.ErrHandler != nil {
-			return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field cannot accept string literal as a value")}, ErrInvalidValue
+			return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: "field cannot accept string literal as a value"}, ErrInvalidValue
 		}
 		return TryParseValueResult{}, ErrInvalidValue
 	case *ast.TextLiteral:
@@ -63,7 +63,7 @@ func (b *Interpreter) TryParseMessageStructField(ctx *ParseContext, in TryParseV
 
 		// Text literal cannot be a valid struct value.
 		if ctx.ErrHandler != nil {
-			return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field cannot accept text literal as a value")}, ErrInvalidValue
+			return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: "field cannot accept text literal as a value"}, ErrInvalidValue
 		}
 		return TryParseValueResult{}, ErrInvalidValue
 	case *ast.StructExpr:

@@ -19,11 +19,11 @@ import (
 	"github.com/blockysource/blocky-aip/token"
 )
 
-func (p *Parser) parseMemberExpr(nameParts []namePart) (*ast.MemberExpr, error) {
+func (p *Parser) parseMemberExpr(nameParts *nameParts) (*ast.MemberExpr, error) {
 	member := getMemberExpr()
 	defer putNameParts(nameParts)
 
-	for i, np := range nameParts {
+	for i, np := range nameParts.parts {
 		if i == 0 {
 			switch {
 			case np.tok == token.STRING:

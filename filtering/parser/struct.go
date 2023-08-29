@@ -79,29 +79,31 @@ func putStructFieldExpr(expr *ast.StructFieldExpr) {
 	structFieldExprPool.Put(expr)
 }
 
-func (p *Parser) parseStructExpr(nameParts []namePart) (*ast.StructExpr, error) {
+func (p *Parser) parseStructExpr(nameParts *nameParts) (*ast.StructExpr, error) {
 	st := getStructExpr()
 
-	if len(nameParts) > 0 {
+	if nameParts != nil {
 		defer putNameParts(nameParts)
 	}
 
 	p.scanner.SkipWhitespace()
 
-	for _, np := range nameParts {
-		switch {
-		case np.tok == token.IDENT, np.tok.IsKeyword():
-			// NOTE: struct name doesn't support token.TIMESTAMP.
-			text := getTextLiteral()
-			text.Pos = np.pos
-			text.Value = np.lit
-			text.Token = np.tok
-			st.Name = append(st.Name, text)
-		default:
-			if p.err != nil {
-				p.err(np.pos, "struct: TEXT expected but got: "+np.lit)
+	if nameParts != nil {
+		for _, np := range nameParts.parts {
+			switch {
+			case np.tok == token.IDENT, np.tok.IsKeyword():
+				// NOTE: struct name doesn't support token.TIMESTAMP.
+				text := getTextLiteral()
+				text.Pos = np.pos
+				text.Value = np.lit
+				text.Token = np.tok
+				st.Name = append(st.Name, text)
+			default:
+				if p.err != nil {
+					p.err(np.pos, "struct: TEXT expected but got: "+np.lit)
+				}
+				return nil, ErrInvalidFilterSyntax
 			}
-			return nil, ErrInvalidFilterSyntax
 		}
 	}
 
@@ -234,10 +236,7 @@ func (p *Parser) parseStructFieldExpr() (*ast.StructFieldExpr, error) {
 		p.scanner.Peek(func(pos token.Position, tok token.Token, lit string) bool {
 			// Expects a dot
 			pt = tok
-			if tok == token.PERIOD {
-				return true
-			}
-			return false
+			return tok == token.PERIOD
 		})
 		if pt != token.PERIOD {
 			break

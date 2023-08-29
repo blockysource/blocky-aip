@@ -32,7 +32,7 @@ func (b *Interpreter) TryParseFloatField(ctx *ParseContext, in TryParseValueInpu
 		var res TryParseValueResult
 		// Internal error, no value in the input.
 		if ctx.ErrHandler != nil {
-			res.ErrMsg = fmt.Sprintf("internal error: no input value provided")
+			res.ErrMsg = "internal error: no input value provided"
 		}
 		return res, ErrInternal
 	}
@@ -46,7 +46,7 @@ func (b *Interpreter) TryParseFloatField(ctx *ParseContext, in TryParseValueInpu
 	case *ast.StringLiteral:
 		// String literal cannot be a float value.
 		if ctx.ErrHandler != nil {
-			return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field cannot accept string literal as a value")}, ErrInvalidValue
+			return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: "field cannot accept string literal as a value"}, ErrInvalidValue
 		}
 		return TryParseValueResult{}, ErrInvalidValue
 	case *ast.TextLiteral:
@@ -107,7 +107,7 @@ func (b *Interpreter) TryParseFloatField(ctx *ParseContext, in TryParseValueInpu
 	case *ast.StructExpr:
 		// A struct value cannot be a float value.
 		if ctx.ErrHandler != nil {
-			return TryParseValueResult{ErrPos: ft.Position(), ErrMsg: fmt.Sprintf("field cannot accept struct expression as a value")}, ErrInvalidValue
+			return TryParseValueResult{ErrPos: ft.Position(), ErrMsg: "field cannot accept struct expression as a value"}, ErrInvalidValue
 		}
 		return TryParseValueResult{}, ErrInvalidValue
 	case *ast.FunctionCall:
@@ -126,7 +126,7 @@ func (b *Interpreter) TryParseFloatField(ctx *ParseContext, in TryParseValueInpu
 				var res TryParseValueResult
 				if ctx.ErrHandler != nil {
 					res.ErrPos = in.Value.Position()
-					res.ErrMsg = fmt.Sprintf("field does not allow indirect value")
+					res.ErrMsg = "field does not allow indirect value"
 				}
 				return res, ErrInvalidValue
 			}

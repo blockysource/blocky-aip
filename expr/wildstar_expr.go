@@ -50,10 +50,7 @@ func (e *WildcardExpr) Equals(other Expr) bool {
 		return false
 	}
 	_, ok := other.(*WildcardExpr)
-	if !ok {
-		return false
-	}
-	return true
+	return ok
 }
 
 // Clone returns a deep copy of the wildcard expression.

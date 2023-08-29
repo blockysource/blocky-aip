@@ -420,18 +420,3 @@ func daysIn(month, year int) int {
 	}
 	return int(daysBefore[month] - daysBefore[month-1])
 }
-
-func parseUint(s string, min, max int) (x int, ok bool) {
-	for _, c := range []byte(s) {
-		if c < '0' || '9' < c {
-			ok = false
-			return min, ok
-		}
-		x = x*10 + int(c) - '0'
-	}
-	if x < min || max < x {
-		ok = false
-		return min, ok
-	}
-	return x, true
-}

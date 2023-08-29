@@ -19,13 +19,13 @@ import (
 	"github.com/blockysource/blocky-aip/token"
 )
 
-func (p *Parser) parseFuncCall(nameParts []namePart) (*ast.FunctionCall, error) {
+func (p *Parser) parseFuncCall(nameParts *nameParts) (*ast.FunctionCall, error) {
 	fl := getFunctionCall()
-	fl.Pos = nameParts[0].pos
+	fl.Pos = nameParts.parts[0].pos
 
 	defer putNameParts(nameParts)
 
-	for _, np := range nameParts {
+	for _, np := range nameParts.parts {
 		switch {
 		case np.tok == token.IDENT, np.tok.IsKeyword():
 			text := getTextLiteral()

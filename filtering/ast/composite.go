@@ -57,5 +57,4 @@ func (c *CompositeExpr) String() string {
 }
 func (*CompositeExpr) isArgExpr()    {}
 func (*CompositeExpr) isSimpleExpr() {}
-func (*CompositeExpr) isTermExpr()   {}
 func (*CompositeExpr) isAstExpr()    {}

@@ -92,7 +92,7 @@ func (b *Interpreter) TryParseStringField(ctx *ParseContext, in TryParseValueInp
 
 		// Text literal cannot be a string value.
 		if ctx.ErrHandler != nil {
-			return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field cannot accept text literal as a value")}, ErrInvalidValue
+			return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: "field cannot accept text literal as a value"}, ErrInvalidValue
 		}
 		return TryParseValueResult{}, ErrInvalidValue
 	case *ast.ArrayExpr:
@@ -125,7 +125,7 @@ func (b *Interpreter) TryParseStringField(ctx *ParseContext, in TryParseValueInp
 					ve.Free()
 					res.Expr.Free()
 					if ctx.ErrHandler != nil {
-						return TryParseValueResult{ErrPos: elem.Position(), ErrMsg: fmt.Sprintf("field cannot accept function call or field selector expression as a value")}, ErrInvalidValue
+						return TryParseValueResult{ErrPos: elem.Position(), ErrMsg: "field cannot accept function call or field selector expression as a value"}, ErrInvalidValue
 					}
 					return TryParseValueResult{}, ErrInternal
 				}
@@ -137,7 +137,7 @@ func (b *Interpreter) TryParseStringField(ctx *ParseContext, in TryParseValueInp
 	case *ast.StructExpr:
 		// A struct is not a valid string.
 		if ctx.ErrHandler != nil {
-			return TryParseValueResult{ErrPos: ft.Position(), ErrMsg: fmt.Sprintf("field cannot accept struct expression as a value")}, ErrInvalidValue
+			return TryParseValueResult{ErrPos: ft.Position(), ErrMsg: "field cannot accept struct expression as a value"}, ErrInvalidValue
 		}
 		return TryParseValueResult{}, ErrInvalidValue
 	default:

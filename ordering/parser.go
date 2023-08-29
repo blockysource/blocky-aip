@@ -17,7 +17,6 @@ package ordering
 import (
 	"errors"
 	"fmt"
-	"sync"
 
 	"google.golang.org/protobuf/reflect/protoreflect"
 
@@ -50,7 +49,6 @@ type Parser struct {
 	errHandler scanner.ErrorHandler
 
 	msgInfo info.MessagesInfo
-	mut     sync.RWMutex
 }
 
 // ParserOpt is an option function for the parser.
@@ -227,7 +225,7 @@ func (p *Parser) Parse(orderBy string) (oe *expr.OrderByExpr, err error) {
 		s.SkipWhitespace()
 
 		// Scan next token, for the comma or EOF.
-		pos, tok, lit = s.Scan()
+		pos, tok, _ = s.Scan()
 		switch tok {
 		case token.COMMA:
 			// This means the end of the field order by expression

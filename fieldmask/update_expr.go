@@ -36,7 +36,8 @@ import (
 // This will evaluate to all keys in the mapi_field value
 func (p *Parser) ParseUpdateExpr(msg proto.Message, mask *fieldmaskpb.FieldMask) (*expr.UpdateExpr, error) {
 	if p.desc == nil {
-		p.Reset(msg)
+		p.desc = msg.ProtoReflect().Descriptor()
+		p.msgInfo = info.MapMsgInfo(p.desc)
 	}
 	ue := expr.AcquireUpdateExpr()
 	if len(mask.Paths) == 0 {
@@ -99,8 +100,6 @@ func (p *Parser) buildPathUpdateExpr(ue *expr.UpdateExpr, msgValue protoreflect.
 			return ErrInvalidField
 		}
 
-		if !tok.IsIdent() {
-		}
 		// This means it is a field selector.
 		var ok bool
 		fi, ok = p.msgInfo.MessageInfo(md).

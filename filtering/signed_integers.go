@@ -41,7 +41,7 @@ func (b *Interpreter) TryParseSignedIntField(ctx *ParseContext, in TryParseValue
 	case *ast.StringLiteral:
 		// String literal cannot be a signed int value.
 		if ctx.ErrHandler != nil {
-			return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field cannot accept string literal as a value")}, ErrInvalidValue
+			return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: "field cannot accept string literal as a value"}, ErrInvalidValue
 		}
 		return TryParseValueResult{}, ErrInvalidValue
 	case *ast.TextLiteral:
@@ -82,7 +82,7 @@ func (b *Interpreter) TryParseSignedIntField(ctx *ParseContext, in TryParseValue
 					ve.Free()
 					res.Expr.Free()
 					if ctx.ErrHandler != nil {
-						return TryParseValueResult{ErrPos: elem.Position(), ErrMsg: fmt.Sprintf("field cannot accept function call or field selector expression as a value")}, ErrInvalidValue
+						return TryParseValueResult{ErrPos: elem.Position(), ErrMsg: "field cannot accept function call or field selector expression as a value"}, ErrInvalidValue
 					}
 					return TryParseValueResult{}, ErrInternal
 				}
@@ -94,7 +94,7 @@ func (b *Interpreter) TryParseSignedIntField(ctx *ParseContext, in TryParseValue
 	case *ast.StructExpr:
 		// A struct is not a valid signed int.
 		if ctx.ErrHandler != nil {
-			return TryParseValueResult{ErrPos: ft.Position(), ErrMsg: fmt.Sprintf("field cannot accept struct literal as a value")}, ErrInvalidValue
+			return TryParseValueResult{ErrPos: ft.Position(), ErrMsg: "field cannot accept struct literal as a value"}, ErrInvalidValue
 		}
 		return TryParseValueResult{}, ErrInvalidValue
 	default:

@@ -181,34 +181,34 @@ func (c *Composer) Pagination(pageSize, skip int32) *PaginationExpr {
 	return pe
 }
 
-func (c *Composer) parseMapValueSelector(selector string) (protoreflect.FieldDescriptor, error) {
-	var fd protoreflect.FieldDescriptor
-	md := c.Desc
-
-	split := strings.Split(selector, ".")
-	for i, field := range split {
-		fd = md.Fields().ByName(protoreflect.Name(field))
-		if fd == nil {
-			return nil, fmt.Errorf("selector: %s is not a valid field in the message: %s", field, md.FullName())
-		}
-		if fd.Kind() != protoreflect.MessageKind {
-			return nil, fmt.Errorf("selector: %s cannot traverse through a non-message field: %s", field, fd.FullName())
-		}
-		if fd.Cardinality() == protoreflect.Repeated {
-			return nil, fmt.Errorf("selector: %s cannot be based on a repeated field: %s", field, fd.FullName())
-		}
-		if i < len(split)-1 {
-			md = fd.Message()
-		}
-
-		if i == len(split)-1 {
-			if !fd.IsMap() {
-				return nil, fmt.Errorf("selector: %s is not a map field: %s", field, fd.FullName())
-			}
-		}
-	}
-	return fd, nil
-}
+// func (c *Composer) parseMapValueSelector(selector string) (protoreflect.FieldDescriptor, error) {
+// 	var fd protoreflect.FieldDescriptor
+// 	md := c.Desc
+//
+// 	split := strings.Split(selector, ".")
+// 	for i, field := range split {
+// 		fd = md.Fields().ByName(protoreflect.Name(field))
+// 		if fd == nil {
+// 			return nil, fmt.Errorf("selector: %s is not a valid field in the message: %s", field, md.FullName())
+// 		}
+// 		if fd.Kind() != protoreflect.MessageKind {
+// 			return nil, fmt.Errorf("selector: %s cannot traverse through a non-message field: %s", field, fd.FullName())
+// 		}
+// 		if fd.Cardinality() == protoreflect.Repeated {
+// 			return nil, fmt.Errorf("selector: %s cannot be based on a repeated field: %s", field, fd.FullName())
+// 		}
+// 		if i < len(split)-1 {
+// 			md = fd.Message()
+// 		}
+//
+// 		if i == len(split)-1 {
+// 			if !fd.IsMap() {
+// 				return nil, fmt.Errorf("selector: %s is not a map field: %s", field, fd.FullName())
+// 			}
+// 		}
+// 	}
+// 	return fd, nil
+// }
 
 func (c *Composer) parseSelector(s string) (*FieldSelectorExpr, error) {
 	var fd protoreflect.FieldDescriptor

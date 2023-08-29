@@ -713,10 +713,30 @@ func TestInterpreter_Parse(t *testing.T) {
 			err:    ErrInvalidValue,
 		},
 		{
-			name: "no traverse field",
+			name:   "no traverse field",
 			filter: "point_non_traversal.x = 1",
 			isErr:  true,
 			err:    ErrInvalidValue,
+		},
+		{
+			name:    "f32 field eq direct",
+			filter:  tstF32FieldEQDirect,
+			checkFn: testF32FieldEQDirect,
+		},
+		{
+			name:    "f32 field in array",
+			filter:  tstF32FieldINArray,
+			checkFn: testF32FieldINArray,
+		},
+		{
+			name:    "f32 field in array indirect",
+			filter:  tstF32FieldINArrayIndirect,
+			checkFn: testF32FieldINArrayIndirect,
+		},
+		{
+			name:    "f32 field eq indirect",
+			filter:  tstF32FieldEQIndirect,
+			checkFn: testF32FieldEQIndirect,
 		},
 	}
 	for _, tt := range tc {

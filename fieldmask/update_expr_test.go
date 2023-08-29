@@ -29,7 +29,7 @@ func TestParseUpdateExpr(t *testing.T) {
 	tests := []struct {
 		name  string
 		paths []string
-		msg   testpb.Message
+		msg   *testpb.Message
 		check func(t *testing.T, x *expr.UpdateExpr)
 	}{
 		{
@@ -37,7 +37,7 @@ func TestParseUpdateExpr(t *testing.T) {
 			paths: []string{
 				"str",
 			},
-			msg: testpb.Message{
+			msg: &testpb.Message{
 				Str: "test",
 			},
 			check: func(t *testing.T, x *expr.UpdateExpr) {
@@ -83,7 +83,7 @@ func TestParseUpdateExpr(t *testing.T) {
 			paths: []string{
 				"str",
 			},
-			msg: testpb.Message{
+			msg: &testpb.Message{
 				Str: "",
 			},
 			check: func(t *testing.T, x *expr.UpdateExpr) {
@@ -129,7 +129,7 @@ func TestParseUpdateExpr(t *testing.T) {
 			paths: []string{
 				"i32",
 			},
-			msg: testpb.Message{
+			msg: &testpb.Message{
 				Name: "test",
 				I32:  42,
 			},
@@ -176,7 +176,7 @@ func TestParseUpdateExpr(t *testing.T) {
 			paths: []string{
 				"s32",
 			},
-			msg: testpb.Message{
+			msg: &testpb.Message{
 				S32: 42,
 			},
 			check: func(t *testing.T, x *expr.UpdateExpr) {
@@ -222,7 +222,7 @@ func TestParseUpdateExpr(t *testing.T) {
 			paths: []string{
 				"u32",
 			},
-			msg: testpb.Message{
+			msg: &testpb.Message{
 				U32: 42,
 			},
 			check: func(t *testing.T, x *expr.UpdateExpr) {
@@ -268,7 +268,7 @@ func TestParseUpdateExpr(t *testing.T) {
 			paths: []string{
 				"i64",
 			},
-			msg: testpb.Message{
+			msg: &testpb.Message{
 				I64: 42,
 			},
 			check: func(t *testing.T, x *expr.UpdateExpr) {
@@ -314,7 +314,7 @@ func TestParseUpdateExpr(t *testing.T) {
 			paths: []string{
 				"sub",
 			},
-			msg: testpb.Message{
+			msg: &testpb.Message{
 				Sub: &testpb.Message{
 					Name: "test",
 				},
@@ -392,7 +392,7 @@ func TestParseUpdateExpr(t *testing.T) {
 				"point.x",
 				"point.y",
 			},
-			msg: testpb.Message{
+			msg: &testpb.Message{
 				Point: &testpb.Point{
 					X: 42,
 					Y: 43.24,
@@ -426,6 +426,9 @@ func TestParseUpdateExpr(t *testing.T) {
 				}
 
 				ft, ok := el.Field.Traversal.(*expr.FieldSelectorExpr)
+				if !ok {
+					t.Fatalf("el.Field.Traversal is not a FieldSelectorExpr but %T", el.Field.Traversal)
+				}
 				if ft.Field != "x" {
 					t.Fatalf("el.Field.Traversal.Field = %v, want 'x'", ft.Field)
 				}
@@ -465,6 +468,9 @@ func TestParseUpdateExpr(t *testing.T) {
 				}
 
 				fv, ok := ev.Value.(float64)
+				if !ok {
+					t.Fatalf("el.Value is not a float64 but %T", ev.Value)
+				}
 
 				if math.Abs(fv-43.24) <= 1e-9 {
 					t.Errorf("el.Value = %v, want 43.24", ev.Value)
@@ -476,7 +482,7 @@ func TestParseUpdateExpr(t *testing.T) {
 			paths: []string{
 				"map_str_str.key",
 			},
-			msg: testpb.Message{
+			msg: &testpb.Message{
 				MapStrStr: map[string]string{
 					"key": "value",
 				},
@@ -537,7 +543,7 @@ func TestParseUpdateExpr(t *testing.T) {
 			paths: []string{
 				"sub.map_i32_str.653",
 			},
-			msg: testpb.Message{
+			msg: &testpb.Message{
 				Sub: &testpb.Message{
 					MapI32Str: map[int32]string{
 						653: "value",
@@ -609,12 +615,15 @@ func TestParseUpdateExpr(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var p Parser
-			p.Reset(new(testpb.Message))
+			if err := p.Reset(new(testpb.Message)); err != nil {
+				t.Errorf("Reset() error = %v", err)
+				return
+			}
 
 			mask := &fieldmaskpb.FieldMask{
 				Paths: tt.paths,
 			}
-			got, err := p.ParseUpdateExpr(&tt.msg, mask)
+			got, err := p.ParseUpdateExpr(tt.msg, mask)
 			if err != nil {
 				t.Errorf("ParseUpdateExpr() error = %v", err)
 				return

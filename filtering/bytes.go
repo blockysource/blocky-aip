@@ -97,7 +97,7 @@ func (b *Interpreter) TryParseBytesField(ctx *ParseContext, in TryParseValueInpu
 					ve.Free()
 					res.Expr.Free()
 					if ctx.ErrHandler != nil {
-						return TryParseValueResult{ErrPos: elem.Position(), ErrMsg: fmt.Sprintf("field cannot accept function call or field selector expression as a value")}, ErrInvalidValue
+						return TryParseValueResult{ErrPos: elem.Position(), ErrMsg: "field cannot accept function call or field selector expression as a value"}, ErrInvalidValue
 					}
 					return TryParseValueResult{}, ErrInternal
 				}

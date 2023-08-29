@@ -66,7 +66,7 @@ func (p *Parser) parseSelectExprPath(s *scanner.Scanner, md protoreflect.Message
 	if tok == token.ASTERISK {
 		// This means it is a wildcard path.
 		// The next one must be the end of the path.
-		pos, tok, lit = s.Scan()
+		pos, tok, _ = s.Scan()
 		if tok != token.EOF {
 			if p.errHandler != nil {
 				p.errHandler(pos, "a wildcard path must be the last segment of the path")
@@ -154,7 +154,7 @@ func (p *Parser) parseSelectExprPath(s *scanner.Scanner, md protoreflect.Message
 	// a message, map or repeated field.
 	if fi.Desc.IsList() {
 		// The only valid token is a wildcard now.
-		pos, tok, lit = s.Scan()
+		pos, tok, _ = s.Scan()
 		if tok != token.ASTERISK {
 			if p.errHandler != nil {
 				p.errHandler(pos, fmt.Sprintf("field: %q is a repeated field, cannot traverse through it with non wildcard path", fi.Desc.Name()))

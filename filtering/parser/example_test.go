@@ -22,7 +22,7 @@ import (
 	"github.com/blockysource/blocky-aip/filtering/parser"
 )
 
-func ExampleParse() {
+func ExampleNewParser() {
 	p := parser.NewParser("m = 10")
 
 	parsed, err := p.Parse()

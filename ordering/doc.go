@@ -14,7 +14,5 @@
 
 // Package ordering implements resource list ordering as
 // defined in the https://google.aip.dev/132#ordering.
-//
-//
 
 package ordering

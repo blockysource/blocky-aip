@@ -75,7 +75,7 @@ func (b *Interpreter) TryParseStructPb(ctx *ParseContext, in TryParseValueInput)
 
 		// Text literal cannot be a struct value.
 		if ctx.ErrHandler != nil {
-			return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field cannot accept text literal as a value")}, ErrInvalidValue
+			return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: "field cannot accept text literal as a value"}, ErrInvalidValue
 		}
 		return TryParseValueResult{}, ErrInvalidValue
 	case *ast.ArrayExpr:
@@ -136,7 +136,7 @@ func (b *Interpreter) TryParseStructPb(ctx *ParseContext, in TryParseValueInput)
 			var res TryParseValueResult
 			if ctx.ErrHandler != nil {
 				res.ErrPos = ft.Position()
-				res.ErrMsg = fmt.Sprintf("internal error: struct expression is not represented as a value")
+				res.ErrMsg = "internal error: struct expression is not represented as a value"
 			}
 			x.Free()
 			return res, ErrInternal

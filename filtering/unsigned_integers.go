@@ -41,7 +41,7 @@ func (b *Interpreter) TryParseUnsignedIntField(ctx *ParseContext, in TryParseVal
 	case *ast.StringLiteral:
 		// String literal cannot be a signed int value.
 		if ctx.ErrHandler != nil {
-			return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field cannot accept string literal as a value")}, ErrInvalidValue
+			return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: "field cannot accept string literal as a value"}, ErrInvalidValue
 		}
 		return TryParseValueResult{}, ErrInvalidValue
 	case *ast.TextLiteral:
@@ -83,7 +83,7 @@ func (b *Interpreter) TryParseUnsignedIntField(ctx *ParseContext, in TryParseVal
 					ve.Free()
 					res.Expr.Free()
 					if ctx.ErrHandler != nil {
-						return TryParseValueResult{ErrPos: elem.Position(), ErrMsg: fmt.Sprintf("field cannot accept function call or field selector expression as a value")}, ErrInvalidValue
+						return TryParseValueResult{ErrPos: elem.Position(), ErrMsg: "field cannot accept function call or field selector expression as a value"}, ErrInvalidValue
 					}
 					return TryParseValueResult{}, ErrInternal
 				}

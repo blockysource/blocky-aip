@@ -29,7 +29,7 @@ func (b *Interpreter) TryParseBooleanField(ctx *ParseContext, in TryParseValueIn
 	case *ast.StringLiteral:
 		// String literal cannot be a bool value.
 		if ctx.ErrHandler != nil {
-			return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: fmt.Sprintf("field cannot accept string literal as a value")}, ErrInvalidValue
+			return TryParseValueResult{ErrPos: ft.Pos, ErrMsg: "field cannot accept string literal as a value"}, ErrInvalidValue
 		}
 		return TryParseValueResult{}, ErrInvalidValue
 	case *ast.TextLiteral:
@@ -90,7 +90,7 @@ func (b *Interpreter) TryParseBooleanField(ctx *ParseContext, in TryParseValueIn
 					ve.Free()
 					res.Expr.Free()
 					if ctx.ErrHandler != nil {
-						return TryParseValueResult{ErrPos: elem.Position(), ErrMsg: fmt.Sprintf("field cannot accept function call or field selector expression as a value")}, ErrInvalidValue
+						return TryParseValueResult{ErrPos: elem.Position(), ErrMsg: "field cannot accept function call or field selector expression as a value"}, ErrInvalidValue
 					}
 					return TryParseValueResult{}, ErrInternal
 				}
@@ -102,7 +102,7 @@ func (b *Interpreter) TryParseBooleanField(ctx *ParseContext, in TryParseValueIn
 	case *ast.StructExpr:
 		// A struct is not a valid bool.
 		if ctx.ErrHandler != nil {
-			return TryParseValueResult{ErrPos: ft.Position(), ErrMsg: fmt.Sprintf("field cannot accept struct expression as a value")}, ErrInvalidValue
+			return TryParseValueResult{ErrPos: ft.Position(), ErrMsg: "field cannot accept struct expression as a value"}, ErrInvalidValue
 		}
 		return TryParseValueResult{}, ErrInvalidValue
 	}
@@ -118,7 +118,7 @@ func (b *Interpreter) TryParseBooleanField(ctx *ParseContext, in TryParseValueIn
 	// A FieldSelectorExpr can either be a value or keyword. ValueExpr is either string literal or text literal.
 	// This means that the FieldSelectorExpr is a keyword expression.
 	if ctx.ErrHandler != nil {
-		return TryParseValueResult{ErrPos: in.Value.Position(), ErrMsg: fmt.Sprintf("field cannot accept keyword expression as a value")}, ErrInvalidValue
+		return TryParseValueResult{ErrPos: in.Value.Position(), ErrMsg: "field cannot accept keyword expression as a value"}, ErrInvalidValue
 	}
 	return TryParseValueResult{}, ErrInvalidValue
 }

@@ -62,8 +62,8 @@ func (p *Parser) parseComparableExpr() (ast.ComparableExpr, error) {
 		}
 		return nil, ErrInvalidFilterSyntax
 	}
-	nameParts := getNameParts()
-	nameParts = append(nameParts, namePart{
+	np := getNameParts()
+	np.parts = append(np.parts, namePart{
 		pos: pos,
 		lit: lit,
 		tok: tok,
@@ -81,11 +81,11 @@ func (p *Parser) parseComparableExpr() (ast.ComparableExpr, error) {
 					if p.err != nil {
 						p.err(pos, "comparable: STRING, TEXT or Keyword expected but got: '"+lit+"'")
 					}
-					putNameParts(nameParts)
+					putNameParts(np)
 					return nil, ErrInvalidFilterSyntax
 				}
 			}
-			nameParts = append(nameParts, namePart{
+			np.parts = append(np.parts, namePart{
 				pos: pos,
 				lit: lit,
 				tok: tok,
@@ -95,23 +95,20 @@ func (p *Parser) parseComparableExpr() (ast.ComparableExpr, error) {
 		p.scanner.Peek(func(pos token.Position, tok token.Token, lit string) bool {
 			// Expects a dot
 			pt = tok
-			if tok == token.PERIOD {
-				return true
-			}
-			return false
+			return tok == token.PERIOD
 		})
 
 		switch pt {
 		case token.BRACE_OPEN:
-			return p.parseStructExpr(nameParts)
+			return p.parseStructExpr(np)
 		case token.PERIOD:
 			i++
 		case token.LPAREN:
 			// This is a function call.
-			return p.parseFuncCall(nameParts)
+			return p.parseFuncCall(np)
 		default:
 			// This is the end of the member expression.
-			return p.parseMemberExpr(nameParts)
+			return p.parseMemberExpr(np)
 		}
 	}
 }

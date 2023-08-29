@@ -31,10 +31,7 @@ func (p *Parser) parseTermExpr() (*ast.TermExpr, error) {
 	bp := p.scanner.Breakpoint()
 	p.scanner.Peek(func(p token.Position, t token.Token, l string) bool {
 		pos, tok, lit = p, t, l
-		if tok.IsUnaryOperator() {
-			return true
-		}
-		return false
+		return tok.IsUnaryOperator()
 	})
 
 	switch tok {

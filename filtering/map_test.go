@@ -54,6 +54,9 @@ func testMapStringI32FieldEqDirect(t *testing.T, x expr.FilterExpr) {
 	}
 
 	ve0v, ok := ve0.Value.(*expr.ValueExpr)
+	if !ok {
+		t.Fatalf("expected value expression but got %T", ve0.Value)
+	}
 	if ve0v.Value != int64(1) {
 		t.Fatalf("expected value 1 but got %d", ve0.Value)
 	}
@@ -64,6 +67,9 @@ func testMapStringI32FieldEqDirect(t *testing.T, x expr.FilterExpr) {
 	}
 
 	ve1v, ok := ve1.Value.(*expr.ValueExpr)
+	if !ok {
+		t.Fatalf("expected value expression but got %T", ve1.Value)
+	}
 	if ve1v.Value != int64(2) {
 		t.Fatalf("expected value 2 but got %d", ve1.Value)
 	}
@@ -103,6 +109,9 @@ func testMapStringI64FieldEqDirect(t *testing.T, x expr.FilterExpr) {
 	}
 
 	ve0v, ok := ve0.Value.(*expr.ValueExpr)
+	if !ok {
+		t.Fatalf("expected value expression but got %T", ve0.Value)
+	}
 	if ve0v.Value != int64(1) {
 		t.Fatalf("expected value 1 but got %d", ve0.Value)
 	}
@@ -113,6 +122,9 @@ func testMapStringI64FieldEqDirect(t *testing.T, x expr.FilterExpr) {
 	}
 
 	ve1v, ok := ve1.Value.(*expr.ValueExpr)
+	if !ok {
+		t.Fatalf("expected value expression but got %T", ve1.Value)
+	}
 	if ve1v.Value != int64(2) {
 		t.Fatalf("expected value 2 but got %d", ve1.Value)
 	}
@@ -152,6 +164,9 @@ func testMapStringU32FieldEqDirect(t *testing.T, x expr.FilterExpr) {
 	}
 
 	ve0v, ok := ve0.Value.(*expr.ValueExpr)
+	if !ok {
+		t.Fatalf("expected value expression but got %T", ve0.Value)
+	}
 	if ve0v.Value != uint64(1) {
 		t.Fatalf("expected value 1 but got %d", ve0.Value)
 	}
@@ -162,6 +177,9 @@ func testMapStringU32FieldEqDirect(t *testing.T, x expr.FilterExpr) {
 	}
 
 	ve1v, ok := ve1.Value.(*expr.ValueExpr)
+	if !ok {
+		t.Fatalf("expected value expression but got %T", ve1.Value)
+	}
 	if ve1v.Value != uint64(2) {
 		t.Fatalf("expected value 2 but got %d", ve1.Value)
 	}
@@ -201,6 +219,9 @@ func testMapStringU64FieldEqDirect(t *testing.T, x expr.FilterExpr) {
 	}
 
 	ve0v, ok := ve0.Value.(*expr.ValueExpr)
+	if !ok {
+		t.Fatalf("expected value expression but got %T", ve0.Value)
+	}
 	if ve0v.Value != uint64(1) {
 		t.Fatalf("expected value 1 but got %d", ve0.Value)
 	}
@@ -211,6 +232,9 @@ func testMapStringU64FieldEqDirect(t *testing.T, x expr.FilterExpr) {
 	}
 
 	ve1v, ok := ve1.Value.(*expr.ValueExpr)
+	if !ok {
+		t.Fatalf("expected value expression but got %T", ve1.Value)
+	}
 	if ve1v.Value != uint64(2) {
 		t.Fatalf("expected value 2 but got %d", ve1.Value)
 	}
@@ -250,6 +274,9 @@ func testMapStringS32FieldEqDirect(t *testing.T, x expr.FilterExpr) {
 	}
 
 	ve0v, ok := ve0.Value.(*expr.ValueExpr)
+	if !ok {
+		t.Fatalf("expected value expression but got %T", ve0.Value)
+	}
 	if ve0v.Value != int64(1) {
 		t.Fatalf("expected value 1 but got %d", ve0.Value)
 	}
@@ -260,6 +287,9 @@ func testMapStringS32FieldEqDirect(t *testing.T, x expr.FilterExpr) {
 	}
 
 	ve1v, ok := ve1.Value.(*expr.ValueExpr)
+	if !ok {
+		t.Fatalf("expected value expression but got %T", ve1.Value)
+	}
 	if ve1v.Value != int64(2) {
 		t.Fatalf("expected value 2 but got %d", ve1.Value)
 	}
@@ -299,6 +329,9 @@ func testMapStringS64FieldEqDirect(t *testing.T, x expr.FilterExpr) {
 	}
 
 	ve0v, ok := ve0.Value.(*expr.ValueExpr)
+	if !ok {
+		t.Fatalf("expected value expression but got %T", ve0.Value)
+	}
 	if ve0v.Value != int64(1) {
 		t.Fatalf("expected value 1 but got %d", ve0.Value)
 	}
@@ -309,9 +342,10 @@ func testMapStringS64FieldEqDirect(t *testing.T, x expr.FilterExpr) {
 	}
 
 	ve1v, ok := ve1.Value.(*expr.ValueExpr)
+	if !ok {
+		t.Fatalf("expected value expression but got %T", ve1.Value)
+	}
 	if ve1v.Value != int64(2) {
 		t.Fatalf("expected value 2 but got %d", ve1.Value)
 	}
 }
-
-const tstMapStringF32FieldEqDirect = `map_str_f32 = map{"test": 1, "test2": 2}`
