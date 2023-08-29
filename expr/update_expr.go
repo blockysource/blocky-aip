@@ -34,6 +34,8 @@ func AcquireUpdateExpr() *UpdateExpr {
 }
 
 // UpdateExpr is an expression that contains fields to update along with their values.
+// The UpdateExpr can be a value of UpdateFieldValue.
+// In that case, the elements of the Value UpdateExpr, are relative to the field of the parent UpdateExpr.
 type UpdateExpr struct {
 	// Elements is a list of fields to update along with their values.
 	Elements []UpdateFieldValue
@@ -102,6 +104,9 @@ func (e *UpdateExpr) Equals(other Expr) bool {
 	return true
 }
 
+// UpdateExpression can be embedded as a value of UpdateExpr.
+func (e *UpdateExpr) isUpdateValueExpr() {}
+
 // UpdateFieldValue is a field to update along with its value.
 type UpdateFieldValue struct {
 	// Field is a field name to update.
@@ -116,3 +121,80 @@ type UpdateValueExpr interface {
 	Expr
 	isUpdateValueExpr()
 }
+
+var arrayUpdateExprPool = &sync.Pool{
+	New: func() any {
+		return &ArrayUpdateExpr{
+			Elements:   make([]*UpdateExpr, 0, 10),
+			isAcquired: true,
+		}
+	},
+}
+
+// AcquireArrayUpdateExpr acquires an ArrayUpdateExpr from the pool.
+// Once acquired it must be released via Free method.
+func AcquireArrayUpdateExpr() *ArrayUpdateExpr {
+	return arrayUpdateExprPool.Get().(*ArrayUpdateExpr)
+}
+
+// ArrayUpdateExpr is an expression that can be used as a value in UpdateExpr.
+// It describes an input array of UpdateExpr.
+type ArrayUpdateExpr struct {
+	// Elements is a list of expression values.
+	Elements []*UpdateExpr
+
+	isAcquired bool
+}
+
+// Free puts the ArrayUpdateExpr back to the pool.
+func (e *ArrayUpdateExpr) Free() {
+	if e == nil {
+		return
+	}
+	for _, sub := range e.Elements {
+		sub.Free()
+	}
+	if e.isAcquired {
+		e.Elements = e.Elements[:0]
+		arrayUpdateExprPool.Put(e)
+	}
+}
+
+// Clone returns a copy of the ArrayUpdateExpr.
+func (e *ArrayUpdateExpr) Clone() Expr {
+	if e == nil {
+		return nil
+	}
+	clone := AcquireArrayUpdateExpr()
+	for _, expr := range e.Elements {
+		clone.Elements = append(clone.Elements, expr.Clone().(*UpdateExpr))
+	}
+	return clone
+}
+
+// Equals returns true if the given expression is equal to the current one.
+func (e *ArrayUpdateExpr) Equals(other Expr) bool {
+	if other == nil {
+		return false
+	}
+
+	oa, ok := other.(*ArrayUpdateExpr)
+	if !ok {
+		return false
+	}
+
+	if len(e.Elements) != len(oa.Elements) {
+		return false
+	}
+
+	for i := range e.Elements {
+		if !e.Elements[i].Equals(oa.Elements[i]) {
+			return false
+		}
+	}
+
+	return true
+}
+
+// UpdateExpression can be embedded as a value of UpdateExpr.
+func (e *ArrayUpdateExpr) isUpdateValueExpr() {}

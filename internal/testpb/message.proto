@@ -33,7 +33,6 @@ enum Enum {
 
 message Message {
   string name = 1;
-
   string str = 2;
   int32 i32 = 3;
   int64 i64 = 4;
@@ -111,26 +110,26 @@ message Message {
   map<string, google.protobuf.Timestamp> map_str_timestamp = 62;
   map<string, google.protobuf.Duration> map_str_duration = 63;
 
-  int32 i32_null = 64 [(blocky.api.query_opt) = NULLABLE];
-  int64 i64_null = 65 [(blocky.api.query_opt) = NULLABLE];
-  uint32 u32_null = 66 [(blocky.api.query_opt) = NULLABLE];
-  uint64 u64_null = 67 [(blocky.api.query_opt) = NULLABLE];
-  sint32 s32_null = 68 [(blocky.api.query_opt) = NULLABLE];
-  sint64 s64_null = 69 [(blocky.api.query_opt) = NULLABLE];
-  fixed32 f32_null = 70 [(blocky.api.query_opt) = NULLABLE];
-  fixed64 f64_null = 71 [(blocky.api.query_opt) = NULLABLE];
-  sfixed32 sf32_null = 72 [(blocky.api.query_opt) = NULLABLE];
-  sfixed64 sf64_null = 73 [(blocky.api.query_opt) = NULLABLE];
-  bool bool_null = 74 [(blocky.api.query_opt) = NULLABLE];
-  string str_null = 75 [(blocky.api.query_opt) = NULLABLE];
-  bytes bytes_null = 76 [(blocky.api.query_opt) = NULLABLE];
-  float float_null = 77 [(blocky.api.query_opt) = NULLABLE];
-  double double_null = 78 [(blocky.api.query_opt) = NULLABLE];
-  google.protobuf.Timestamp timestamp_null = 79 [(blocky.api.query_opt) = NULLABLE];
-  google.protobuf.Duration duration_null = 80 [(blocky.api.query_opt) = NULLABLE];
-  google.protobuf.Struct struct_null = 81 [(blocky.api.query_opt) = NULLABLE];
-  Enum enum_null = 82 [(blocky.api.query_opt) = NULLABLE];
-  Message msg_null = 83 [(blocky.api.query_opt) = NULLABLE];
+  int32 i32_optional = 64 [(google.api.field_behavior) = OPTIONAL];
+  int64 i64_optional = 65 [(google.api.field_behavior) = OPTIONAL];
+  uint32 u32_optional = 66 [(google.api.field_behavior) = OPTIONAL];
+  uint64 u64_optional = 67 [(google.api.field_behavior) = OPTIONAL];
+  sint32 s32_optional = 68 [(google.api.field_behavior) = OPTIONAL];
+  sint64 s64_optional = 69 [(google.api.field_behavior) = OPTIONAL];
+  fixed32 f32_optional = 70 [(google.api.field_behavior) = OPTIONAL];
+  fixed64 f64_optional = 71 [(google.api.field_behavior) = OPTIONAL];
+  sfixed32 sf32_optional = 72 [(google.api.field_behavior) = OPTIONAL];
+  sfixed64 sf64_optional = 73 [(google.api.field_behavior) = OPTIONAL];
+  bool bool_optional = 74 [(google.api.field_behavior) = OPTIONAL];
+  string str_optional = 75 [(google.api.field_behavior) = OPTIONAL];
+  bytes bytes_optional = 76 [(google.api.field_behavior) = OPTIONAL];
+  float float_optional = 77 [(google.api.field_behavior) = OPTIONAL];
+  double double_optional = 78 [(google.api.field_behavior) = OPTIONAL];
+  google.protobuf.Timestamp timestamp_optional = 79 [(google.api.field_behavior) = OPTIONAL];
+  google.protobuf.Duration duration_optional = 80 [(google.api.field_behavior) = OPTIONAL];
+  google.protobuf.Struct struct_optional = 81 [(google.api.field_behavior) = OPTIONAL];
+  Enum enum_optional = 82 [(google.api.field_behavior) = OPTIONAL];
+  Message msg_optional = 83 [(google.api.field_behavior) = OPTIONAL];
 
   oneof oneof {
     string oneof_str = 84;
@@ -156,4 +155,48 @@ message Message {
   }
 
   string input_only_str = 104 [(google.api.field_behavior) = INPUT_ONLY];
+
+  // This field is a keyword in the query language.
+  string AND = 105;
+
+  // IN is a keyword in the query language.
+  Message NOT = 106;
+
+  // This field is a keyword in the query language.
+  string OR = 107;
+
+  // This field is a keyword in the query language.
+  string IN = 108;
+
+  string non_empty_str = 109 [(google.api.field_behavior) = NON_EMPTY_DEFAULT];
+  int32 non_empty_i32 = 110 [(google.api.field_behavior) = NON_EMPTY_DEFAULT];
+  int64 non_empty_i64 = 111 [(google.api.field_behavior) = NON_EMPTY_DEFAULT];
+  uint32 non_empty_u32 = 112 [(google.api.field_behavior) = NON_EMPTY_DEFAULT];
+  uint64 non_empty_u64 = 113 [(google.api.field_behavior) = NON_EMPTY_DEFAULT];
+  sint32 non_empty_s32 = 114 [(google.api.field_behavior) = NON_EMPTY_DEFAULT];
+  sint64 non_empty_s64 = 115 [(google.api.field_behavior) = NON_EMPTY_DEFAULT];
+  fixed32 non_empty_f32 = 116 [(google.api.field_behavior) = NON_EMPTY_DEFAULT];
+  fixed64 non_empty_f64 = 117 [(google.api.field_behavior) = NON_EMPTY_DEFAULT];
+  sfixed32 non_empty_sf32 = 118 [(google.api.field_behavior) = NON_EMPTY_DEFAULT];
+  sfixed64 non_empty_sf64 = 119 [(google.api.field_behavior) = NON_EMPTY_DEFAULT];
+  bool non_empty_bool = 120 [(google.api.field_behavior) = NON_EMPTY_DEFAULT];
+  bytes non_empty_bytes = 121 [(google.api.field_behavior) = NON_EMPTY_DEFAULT];
+  float non_empty_float = 122 [(google.api.field_behavior) = NON_EMPTY_DEFAULT];
+  double non_empty_double = 123 [(google.api.field_behavior) = NON_EMPTY_DEFAULT];
+  google.protobuf.Timestamp non_empty_timestamp = 124 [(google.api.field_behavior) = NON_EMPTY_DEFAULT];
+  google.protobuf.Duration non_empty_duration = 125 [(google.api.field_behavior) = NON_EMPTY_DEFAULT];
+  google.protobuf.Struct non_empty_struct = 126 [(google.api.field_behavior) = NON_EMPTY_DEFAULT];
+  Enum non_empty_enum = 127 [(google.api.field_behavior) = NON_EMPTY_DEFAULT];
+
+  Point point = 128;
+
+  map<int32, string> map_i32_str = 129;
+
+  Point point_non_traversal = 130 [(blocky.api.query_opt) = NON_TRAVERSAL];
+  string no_search = 131 [(blocky.api.query_opt) = NO_TEXT_SEARCH];
+}
+
+message Point {
+  float x = 1;
+  float y = 2;
 }

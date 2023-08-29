@@ -23,6 +23,9 @@ const (
 	WS
 
 	literal_beg
+	// STRING is a special type of literal, which is not defined by the standard EBNF.
+	// It defines a string literal.
+	STRING // "abc" or 'abc'
 	non_string_literal_beg
 	// IDENT is a special type of literal, which is not defined by the standard EBNF.
 	// It defines either an identifier or a keyword.
@@ -52,23 +55,25 @@ const (
 	// DURATION is a special type of literal, which is not defined by the standard EBNF.
 	// It defines a duration literal.
 	DURATION // 1h | 1h30m | 1h30m30s
-	// BOOLEAN is a special type of literal, which is not defined by the standard EBNF.
-	// It defines a boolean literal.
-	BOOLEAN // true | false
+
+	keyword_beg
+	// TRUE is a special types of literals, which are not defined by the standard EBNF,
+	// that represent boolean true value.
+	TRUE // true
+	// FALSE is a special type of literal, which is not defined by the standard EBNF,
+	// that represents a boolean false value.
+	FALSE // false
 	// NULL is a special type of literal, which is not defined by the standard EBNF.
 	// It defines a null literal.
 	NULL // null
 	non_string_literal_end
-
-	// STRING is a special type of literal, which is not defined by the standard EBNF.
-	// It defines a string literal.
-	STRING // "abc" or 'abc'
 	literal_end
 
-	keyword_beg
-	AND  // AND
-	OR   // OR
-	NOT  // NOT
+	logical_beg
+	AND // AND
+	OR  // OR
+	NOT // NOT
+	logical_end
 	ASC  // ASC
 	DESC // DESC
 	comparator_beg
@@ -110,8 +115,9 @@ var tokens = [...]string{
 	HEX:       "HEX",
 	OCT:       "OCT",
 	DURATION:  "DURATION",
-	BOOLEAN:   "BOOLEAN",
-	NULL:      "NULL",
+	TRUE:      "true",
+	FALSE:     "false",
+	NULL:      "null",
 
 	STRING: "STRING",
 
@@ -141,15 +147,18 @@ var tokens = [...]string{
 	MINUS:         "-",
 }
 
-func (t Token) String() string       { return tokens[t] }
-func (t Token) IsLiteral() bool      { return literal_beg < t && t < literal_end }
-func (t Token) IsNonStringLit() bool { return non_string_literal_beg < t && t < non_string_literal_end }
-func (t Token) IsNumber() bool       { return numbers_beg < t && t < numbers_end }
-func (t Token) IsInteger() bool      { return integers_beg < t && t < integers_end }
-func (t Token) IsKeyword() bool      { return t > keyword_beg && t < keyword_end }
-func (t Token) IsComparator() bool   { return comparator_beg < t && t < comparator_end || t == COLON }
-func (t Token) IsAdditional() bool   { return additional_beg < t && t < additional_end }
-func (t Token) IsIdent() bool        { return t == IDENT || t.IsKeyword() || t == NULL }
+func (t Token) String() string        { return tokens[t] }
+func (t Token) IsLiteral() bool       { return literal_beg < t && t < literal_end }
+func (t Token) IsNonStringLit() bool  { return non_string_literal_beg < t && t < non_string_literal_end }
+func (t Token) IsNumber() bool        { return numbers_beg < t && t < numbers_end }
+func (t Token) IsInteger() bool       { return integers_beg < t && t < integers_end }
+func (t Token) IsLogical() bool       { return logical_beg < t && t < logical_end }
+func (t Token) IsBoolean() bool       { return t == TRUE || t == FALSE }
+func (t Token) IsKeyword() bool       { return t > keyword_beg && t < keyword_end }
+func (t Token) IsComparator() bool    { return comparator_beg < t && t < comparator_end || t == COLON }
+func (t Token) IsAdditional() bool    { return additional_beg < t && t < additional_end }
+func (t Token) IsIdent() bool         { return t == IDENT || t.IsKeyword() }
+func (t Token) IsUnaryOperator() bool { return t == NOT || t == MINUS }
 
 // Position is a position of the token in the source.
 type Position int

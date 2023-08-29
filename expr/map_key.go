@@ -48,9 +48,9 @@ var (
 // for filtering map key value.
 type MapKeyExpr struct {
 	// Key is the key expression of the map field.
-	Key FilterExpr
+	Key Expr
 	// Traversal is the traversal expression of the map field.
-	Traversal FilterExpr
+	Traversal Expr
 
 	isAcquired bool
 }
@@ -97,11 +97,17 @@ func (e *MapKeyExpr) Equals(other Expr) bool {
 func (e *MapKeyExpr) Complexity() int64 {
 	c := int64(1)
 	if e.Key != nil {
-		c += e.Key.Complexity()
+		fe, ok := e.Key.(FilterExpr)
+		if ok {
+			c += fe.Complexity()
+		}
 	}
 
 	if e.Traversal != nil {
-		c += e.Traversal.Complexity()
+		fe, ok := e.Traversal.(FilterExpr)
+		if ok {
+			c += fe.Complexity()
+		}
 	}
 	return c
 }

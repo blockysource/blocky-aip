@@ -31,9 +31,6 @@ type Parser struct {
 	// err is the error handler.
 	err scanner.ErrorHandler
 
-	useStructs        bool
-	useArrays         bool
-	useInComparator   bool
 	strictWhiteSpaces bool
 }
 
@@ -45,30 +42,6 @@ func StrictWhitespacesOption() ParserOption {
 	return func(p *Parser) {
 		p.strictWhiteSpaces = true
 	}
-}
-
-var _ ParserOption = UseStructsOption
-
-// UseStructsOption is an extension to the standard parser,
-// which allows the use of structs in the filter.
-func UseStructsOption(p *Parser) {
-	p.useStructs = true
-}
-
-var _ ParserOption = UseArraysOption
-
-// UseArraysOption is an extension to the standard parser,
-// which allows the use of arrays in the filter.
-func UseArraysOption(p *Parser) {
-	p.useArrays = true
-}
-
-var _ ParserOption = UseInComparatorOption
-
-// UseInComparatorOption is an extension to the standard parser,
-// which allows the use of IN comparator in the filter.
-func UseInComparatorOption(p *Parser) {
-	p.useInComparator = true
 }
 
 // ErrorHandlerOption sets the error handler of the parser.

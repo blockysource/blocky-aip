@@ -177,7 +177,7 @@ func (s *Scanner) scanOrPeekToken() (pos token.Position, tok token.Token, lit st
 		tok = token.PERIOD
 		lit = "."
 		// Check if this is a path separator by checking if previous token was literal.
-		if !s.prev.IsLiteral() {
+		if !s.prev.IsLiteral() && !s.prev.IsKeyword() {
 			// This is a numeric after a period.
 			isNumeric = true
 		}
@@ -216,7 +216,7 @@ func (s *Scanner) scanOrPeekToken() (pos token.Position, tok token.Token, lit st
 		} else {
 			isText = true
 		}
-	case '"', '\'':
+	case '"', '\'', '`':
 		isString = true
 	case eof:
 		tok = token.EOF
@@ -258,8 +258,10 @@ func (s *Scanner) scanOrPeekToken() (pos token.Position, tok token.Token, lit st
 		tok, lit = s.scanText()
 
 		switch lit {
-		case "true", "false":
-			tok = token.BOOLEAN
+		case "true":
+			tok = token.TRUE
+		case "false":
+			tok = token.FALSE
 		case "AND":
 			tok = token.AND
 		case "OR":

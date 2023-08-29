@@ -4,10 +4,10 @@ deps:
   - remote: buf.build
     owner: blockyapis
     repository: blockyapis
-    commit: e0cee76848a141b0a24f1cf0952f0ef5
-    digest: shake256:ac00a7a40ccf8ece319138342da9174d92862e6114f4fdc4c46d70e5d6333b2d6f9452ce4fa7b071985303779f3c5cc7ce3fe3edcf62f701ee293a33b6266e1d
+    commit: 03146a0f490a4e3f97cc182b3c2097a5
+    digest: shake256:85c857040fe629a991122b38a9ca2ad2d97c6cae8f983576ee5088e4f4c10a196bbcecc6021da488dba8f4994dfbb0b4a2a2498475a3cf2f7ea41197ed507a89
   - remote: buf.build
     owner: googleapis
     repository: googleapis
-    commit: 711e289f6a384c4caeebaff7c6931ade
-    digest: shake256:e08fb55dad7469f69df00304eed31427d2d1576e9aab31e6bf86642688e04caaf0372f15fe6974cf79432779a635b3ea401ca69c943976dc42749524e4c25d94
+    commit: 28151c0d0a1641bf938a7672c500e01d
+    digest: shake256:49215edf8ef57f7863004539deff8834cfb2195113f0b890dd1f67815d9353e28e668019165b9d872395871eeafcbab3ccfdb2b5f11734d3cca95be9e8d139de

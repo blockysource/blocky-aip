@@ -36,8 +36,17 @@ type FieldInfo struct {
 	// Complexity is the complexity of the field.
 	Complexity int64
 
-	// Forbidden is true if the field filtering is forbidden.
-	Forbidden bool
+	// FilteringForbidden is true if the field filtering is forbidden.
+	FilteringForbidden bool
+
+	// OrderingForbidden is true if the field ordering is forbidden.
+	OrderingForbidden bool
+
+	// NonTraversal is true if the field is non-traversal.
+	NonTraversal bool
+
+	// NoTextSearch is true if the field is no text search.
+	NoTextSearch bool
 
 	// Nullable is true if the field is nullable.
 	Nullable bool
@@ -56,6 +65,23 @@ type FieldInfo struct {
 
 	// Immutable is true if the field is immutable.
 	Immutable bool
+
+	// NonEmptyDefault is true if the field has a non-empty default value.
+	NonEmptyDefault bool
+
+	// IsTimestamp is true if the field is a timestamp.
+	IsTimestamp bool
+
+	// IsDuration is true if the field is a duration.
+	IsDuration bool
+
+	// IsStructpb is true if the field is a structpb.
+	IsStructpb bool
+}
+
+// Undefined returns true if the descriptor is nil.
+func (fi FieldInfo) Undefined() bool {
+	return fi.Desc == nil
 }
 
 // MapMsgInfo maps a message descriptor to a MessageInfo struct.
@@ -86,6 +112,26 @@ func (mi MessagesInfo) GetFieldInfo(fd protoreflect.FieldDescriptor) FieldInfo {
 	panic("field not found")
 }
 
+// MessageInfo returns the message info for the given message descriptor.
+func (mi MessagesInfo) MessageInfo(md protoreflect.MessageDescriptor) *MessageInfo {
+	for _, m := range mi {
+		if m.Desc == md {
+			return m
+		}
+	}
+	panic("message not found")
+}
+
+// FieldByName returns the field info for the given field name.
+func (mi *MessageInfo) FieldByName(name protoreflect.Name) (FieldInfo, bool) {
+	for _, f := range mi.Fields {
+		if f.Desc.Name() == name {
+			return f, true
+		}
+	}
+	return FieldInfo{}, false
+}
+
 func (b *mapper) mapMessage(msg protoreflect.MessageDescriptor) {
 	for i := 0; i < len(b.msgInfo); i++ {
 		if b.msgInfo[i].Desc.FullName() == msg.FullName() {
@@ -101,10 +147,13 @@ func (b *mapper) mapMessage(msg protoreflect.MessageDescriptor) {
 	for i := 0; i < fields.Len(); i++ {
 		fd := fields.Get(i)
 		fi := FieldInfo{
-			Desc:       fd,
-			Complexity: getFieldComplexity(fd),
-			Forbidden:  IsFieldFilteringForbidden(fd),
-			Nullable:   IsFieldNullable(fd),
+			Desc:               fd,
+			Complexity:         getFieldComplexity(fd),
+			FilteringForbidden: isFieldFilteringForbidden(fd),
+			OrderingForbidden:  isFieldOrderingForbidden(fd),
+			Nullable:           isFieldOptional(fd),
+			NonTraversal:       isFieldNonTraversal(fd),
+			NoTextSearch:       isFieldNoTextSearch(fd),
 		}
 
 		fb, ok := proto.GetExtension(fd.Options(), annotations.E_FieldBehavior).([]annotations.FieldBehavior)
@@ -119,7 +168,20 @@ func (b *mapper) mapMessage(msg protoreflect.MessageDescriptor) {
 					fi.Required = true
 				case annotations.FieldBehavior_IMMUTABLE:
 					fi.Immutable = true
+				case annotations.FieldBehavior_NON_EMPTY_DEFAULT:
+					fi.NonEmptyDefault = true
 				}
+			}
+		}
+
+		if fd.Kind() == protoreflect.MessageKind {
+			switch fd.Message().FullName() {
+			case "google.protobuf.Timestamp":
+				fi.IsTimestamp = true
+			case "google.protobuf.Duration":
+				fi.IsDuration = true
+			case "google.protobuf.Struct":
+				fi.IsStructpb = true
 			}
 		}
 
@@ -154,11 +216,13 @@ func (b *mapper) mapMessage(msg protoreflect.MessageDescriptor) {
 		for j := 0; j < of.Len(); j++ {
 			fd := of.Get(j)
 			fi := FieldInfo{
-				Desc:       fd,
-				IsOneOf:    true,
-				Complexity: getFieldComplexity(fd),
-				Forbidden:  IsFieldFilteringForbidden(fd),
-				Nullable:   IsFieldNullable(fd),
+				Desc:               fd,
+				IsOneOf:            true,
+				Complexity:         getFieldComplexity(fd),
+				FilteringForbidden: isFieldFilteringForbidden(fd),
+				Nullable:           isFieldOptional(fd),
+				NonTraversal:       isFieldNonTraversal(fd),
+				NoTextSearch:       isFieldNoTextSearch(fd),
 			}
 
 			fb, ok := proto.GetExtension(fd.Options(), annotations.E_FieldBehavior).([]annotations.FieldBehavior)
@@ -211,8 +275,8 @@ func getFieldComplexity(fdt protoreflect.FieldDescriptor) int64 {
 	return c
 }
 
-// IsFieldFilteringForbidden returns true if the field filtering is forbidden.
-func IsFieldFilteringForbidden(field protoreflect.FieldDescriptor) bool {
+// isFieldFilteringForbidden returns true if the field filtering is forbidden.
+func isFieldFilteringForbidden(field protoreflect.FieldDescriptor) bool {
 	opts, ok := proto.GetExtension(field.Options(), blockyannotations.E_QueryOpt).([]blockyannotations.FieldQueryOption)
 	if !ok {
 		return false
@@ -225,32 +289,55 @@ func IsFieldFilteringForbidden(field protoreflect.FieldDescriptor) bool {
 	return false
 }
 
-// IsFieldNullable checks if the input field is nullable.
-func IsFieldNullable(field protoreflect.FieldDescriptor) bool {
-	// At first try blockaypi.E_Nullable extension, if not found, then try google api.OPTIONAL extension.
-	// If not found, then return false.
-	queryOpts, ok := proto.GetExtension(field.Options(), blockyannotations.E_QueryOpt).([]blockyannotations.FieldQueryOption)
-	if ok {
-		for _, qo := range queryOpts {
-			if qo == blockyannotations.FieldQueryOption_NULLABLE {
-				return true
-			}
+// isFieldOrderingForbidden returns true if the field filtering is forbidden.
+func isFieldOrderingForbidden(field protoreflect.FieldDescriptor) bool {
+	opts, ok := proto.GetExtension(field.Options(), blockyannotations.E_QueryOpt).([]blockyannotations.FieldQueryOption)
+	if !ok {
+		return false
+	}
+	for _, opt := range opts {
+		if opt == blockyannotations.FieldQueryOption_FORBID_SORTING {
+			return true
 		}
 	}
+	return false
+}
 
+// isFieldNonTraversal returns true if the field is non-traversal.
+func isFieldNonTraversal(field protoreflect.FieldDescriptor) bool {
+	opts, ok := proto.GetExtension(field.Options(), blockyannotations.E_QueryOpt).([]blockyannotations.FieldQueryOption)
+	if !ok {
+		return false
+	}
+	for _, opt := range opts {
+		if opt == blockyannotations.FieldQueryOption_NON_TRAVERSAL {
+			return true
+		}
+	}
+	return false
+}
+
+// isFieldNoTextSearch returns true if the field is no text search.
+func isFieldNoTextSearch(field protoreflect.FieldDescriptor) bool {
+	opts, ok := proto.GetExtension(field.Options(), blockyannotations.E_QueryOpt).([]blockyannotations.FieldQueryOption)
+	if !ok {
+		return false
+	}
+	for _, opt := range opts {
+		if opt == blockyannotations.FieldQueryOption_NO_TEXT_SEARCH {
+			return true
+		}
+	}
+	return false
+}
+
+// isFieldOptional checks if the input field is nullable.
+func isFieldOptional(field protoreflect.FieldDescriptor) bool {
 	fb, ok := proto.GetExtension(field.Options(), annotations.E_FieldBehavior).([]annotations.FieldBehavior)
 	if !ok {
 		return false
 	}
 
-	if field.Kind() == protoreflect.MessageKind {
-		for _, b := range fb {
-			if b == annotations.FieldBehavior_REQUIRED {
-				return false
-			}
-		}
-		return true
-	}
 	for _, b := range fb {
 		switch b {
 		case annotations.FieldBehavior_REQUIRED, annotations.FieldBehavior_IMMUTABLE:

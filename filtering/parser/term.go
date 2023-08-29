@@ -23,26 +23,87 @@ func (p *Parser) parseTermExpr() (*ast.TermExpr, error) {
 	// The term is either unary or simple term.
 	// Check if the next token is unary operator.
 	var (
-		isUnary  bool
-		unaryPos token.Position
-		unaryTok token.Token
-		unaryLit string
+		pos token.Position
+		tok token.Token
+		lit string
 	)
 
-	p.scanner.Peek(func(pos token.Position, tok token.Token, lit string) bool {
-		switch tok {
-		case token.NOT, token.MINUS:
-			isUnary = true
-			unaryPos = pos
-			unaryTok = tok
-			unaryLit = lit
+	bp := p.scanner.Breakpoint()
+	p.scanner.Peek(func(p token.Position, t token.Token, l string) bool {
+		pos, tok, lit = p, t, l
+		if tok.IsUnaryOperator() {
 			return true
 		}
 		return false
 	})
-	te := getTermExpr()
-	if !isUnary {
-		// The term is a simple term.
+
+	switch tok {
+	case token.NOT:
+		// If the token is NOT, it is probably a unary operator.
+		// However, we need to check edge cases when the message field is name.
+		nm, err := p.isKeywordMember()
+		if err != nil {
+			return nil, err
+		}
+		p.scanner.Restore(bp)
+
+		if nm {
+			// NOT is a member.
+			te := getTermExpr()
+			simple, err := p.parseSimpleExpr()
+			if err != nil {
+				putTermExpr(te)
+				return nil, err
+			}
+			te.Pos = simple.Position()
+			te.Expr = simple
+			return te, nil
+		}
+		p.scanner.Scan() // Scan the NOT token.
+
+		n := p.scanner.SkipWhitespace()
+		if p.strictWhiteSpaces && n > 1 {
+			if p.err != nil {
+				p.err(pos, "term: invalid syntax")
+			}
+			return nil, ErrInvalidFilterSyntax
+		}
+
+		// NOT is a unary operator.
+		te := getTermExpr()
+		te.Pos = pos
+		te.UnaryOp = lit
+		simple, err := p.parseSimpleExpr()
+		if err != nil {
+			putTermExpr(te)
+			return nil, err
+		}
+		te.Expr = simple
+		return te, nil
+	case token.MINUS:
+		// Check if this is a negative number or a unary operator.
+		n := p.scanner.SkipWhitespace()
+		if n > 0 {
+			if p.err != nil {
+				p.err(pos, "whitespace after '-' unary operator is not allowed")
+			}
+			return nil, ErrInvalidFilterSyntax
+		}
+
+		te := getTermExpr()
+		te.Pos = pos
+		te.UnaryOp = lit
+		simple, err := p.parseSimpleExpr()
+		if err != nil {
+			putTermExpr(te)
+			return nil, err
+		}
+		te.Expr = simple
+		return te, nil
+	default:
+		// Not a unary operator.
+		// Restore the breakpoint and parse a simple term.
+		te := getTermExpr()
 		simple, err := p.parseSimpleExpr()
 		if err != nil {
 			return nil, err
@@ -51,29 +112,59 @@ func (p *Parser) parseTermExpr() (*ast.TermExpr, error) {
 		te.Expr = simple
 		return te, nil
 	}
-	te.Pos = unaryPos
-	te.UnaryOp = unaryLit
-	if unaryTok == token.NOT {
-		ws := p.scanner.SkipWhitespace()
-		if ws == 0 {
-			if p.err != nil {
-				p.err(unaryPos, "term: WS expected after NOT operator")
-			}
-			return nil, ErrInvalidFilterSyntax
-		}
+}
 
-		if p.strictWhiteSpaces && ws > 1 {
-			if p.err != nil {
-				p.err(p.scanner.Pos(), "term: only one WS is allowed between NOT operator and simple term")
+func (p *Parser) isKeywordMember() (bool, error) {
+	n := p.scanner.SkipWhitespace()
+	if n == 0 {
+		pos, tok, _ := p.scanner.Scan()
+		switch tok {
+		case token.PERIOD, token.LPAREN, token.BRACE_OPEN, token.BRACKET_CLOSE, token.BRACE_CLOSE, token.COMMA, token.EOF:
+			return true, nil
+		default:
+			if tok.IsComparator() {
+				return true, nil
 			}
-			return nil, ErrInvalidFilterSyntax
+			// Invalid syntax.
+			if p.err != nil {
+				p.err(pos, "term: invalid syntax")
+			}
+			return false, ErrInvalidFilterSyntax
 		}
 	}
-	// MINUS
-	simple, err := p.parseSimpleExpr()
-	if err != nil {
-		return nil, err
+
+	// If there is more than zero whitespace, then check the next token.
+	pos, tok, _ := p.scanner.Scan()
+
+	// If the token is a comparator or the next token is LPAREN, then it is a member term.
+	if tok.IsComparator() {
+		return true, nil
 	}
-	te.Expr = simple
-	return te, nil
+
+	switch tok {
+	case token.LPAREN:
+		return false, nil
+	case token.RPAREN, token.BRACKET_CLOSE, token.BRACE_CLOSE, token.COMMA:
+		return true, nil
+	case token.AND, token.OR, token.NOT:
+		is, err := p.isKeywordMember()
+		if err != nil {
+			return false, err
+		}
+		return !is, nil
+	case token.EOF:
+		// EOF means that the NOT is a unary operator.
+		return true, nil
+	}
+
+	// If the next token is an identifier
+	if tok.IsIdent() {
+		return false, nil
+	}
+
+	// Invalid syntax.
+	if p.err != nil {
+		p.err(pos, "term: invalid syntax")
+	}
+	return false, ErrInvalidFilterSyntax
 }

@@ -146,6 +146,15 @@ func (p *Parser) Parse(orderBy string) (oe *expr.OrderByExpr, err error) {
 			return nil, err
 		}
 
+		fi := p.msgInfo.GetFieldInfo(fd)
+		if fi.OrderingForbidden {
+			if p.errHandler != nil {
+				p.errHandler(pos, "ordering by given field is forbidden")
+			}
+			oe.Free()
+			return nil, ErrSortingForbidden
+		}
+
 		fe := expr.AcquireFieldSelectorExpr()
 		fe.Field = fd.Name()
 		fe.FieldComplexity = c
@@ -288,7 +297,7 @@ func (p *Parser) parseField(md protoreflect.MessageDescriptor, pos token.Positio
 
 	fi := p.msgInfo.GetFieldInfo(fd)
 
-	if fi.Forbidden {
+	if fi.FilteringForbidden {
 		if p.errHandler != nil {
 			p.errHandler(pos, "ordering by given field is forbidden")
 		}

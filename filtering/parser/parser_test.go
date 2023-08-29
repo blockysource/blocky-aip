@@ -47,9 +47,6 @@ func TestParse(t *testing.T) {
 	testCases := []struct {
 		name            string
 		src             string
-		useStructs      bool
-		useArray        bool
-		useInComparator bool
 		expectedErr     error
 		checkFn         func(t *testing.T, pf *ParsedFilter)
 	}{
@@ -188,54 +185,44 @@ func TestParse(t *testing.T) {
 			checkFn: testFuncCallNoArg,
 		},
 		{
-			name:     "array with quote",
-			useArray: true,
-			src:      arrayWithQuote,
-			checkFn:  testArrayWithQuote,
+			name:    "array with quote",
+			src:     arrayWithQuote,
+			checkFn: testArrayWithQuote,
 		},
 		{
-			name:     "array with quote and WS",
-			src:      arrayWithQuoteAndWS,
-			checkFn:  testArrayWithQuoteAndWS,
-			useArray: true,
+			name:    "array with quote and WS",
+			src:     arrayWithQuoteAndWS,
+			checkFn: testArrayWithQuoteAndWS,
 		},
 		{
-			name:       "struct extension",
-			src:        structExpr,
-			useStructs: true,
-			checkFn:    testStructExpr,
+			name:    "struct extension",
+			src:     structExpr,
+			checkFn: testStructExpr,
 		},
 		{
-			name:       "restriction with struct arg",
-			src:        restrictionWithStructArg,
-			useStructs: true,
-			checkFn:    testRestrictionWithStructArg,
+			name:    "restriction with struct arg",
+			src:     restrictionWithStructArg,
+			checkFn: testRestrictionWithStructArg,
 		},
 		{
-			name:       "complex restriction func call with struct and array",
-			src:        complexRestrictionWithFuncCallStructAndArray,
-			useArray:   true,
-			useStructs: true,
-			checkFn:    testComplexRestrictionWithFuncCallStructAndArray,
+			name:     "complex restriction func call with struct and array",
+			src:      complexRestrictionWithFuncCallStructAndArray,
+			checkFn:  testComplexRestrictionWithFuncCallStructAndArray,
 		},
 		{
-			name:       "struct with newlines",
-			useStructs: true,
-			src:        structExprWithNewLines,
-			checkFn:    testStructExprWithNewLines,
+			name:    "struct with newlines",
+			src:     structExprWithNewLines,
+			checkFn: testStructExprWithNewLines,
 		},
 		{
-			name:       "struct with newlines ended with comma",
-			useStructs: true,
-			src:        structExprWithNewLinesEndedWithComma,
-			checkFn:    testStructExprWithNewLinesEndedWithComma,
+			name:    "struct with newlines ended with comma",
+			src:     structExprWithNewLinesEndedWithComma,
+			checkFn: testStructExprWithNewLinesEndedWithComma,
 		},
 		{
-			name:            "restriction with IN and array",
-			useArray:        true,
-			useInComparator: true,
-			src:             restrictionWithIN,
-			checkFn:         testRestrictionWithIN,
+			name:    "restriction with IN and array",
+			src:     restrictionWithIN,
+			checkFn: testRestrictionWithIN,
 		},
 		{
 			name:    "restriction with timestamp",
@@ -253,10 +240,9 @@ func TestParse(t *testing.T) {
 			checkFn: testRestrictionWithTimestampAndTimezone,
 		},
 		{
-			name:       "map struct comparable",
-			src:        mapStructComparable,
-			useStructs: true,
-			checkFn:    testMapStructComparable,
+			name:    "map struct comparable",
+			src:     mapStructComparable,
+			checkFn: testMapStructComparable,
 		},
 		{
 			name:    "restriction with negative int on right",
@@ -264,10 +250,24 @@ func TestParse(t *testing.T) {
 			checkFn: testRestrictionWithNegativeIntOnRight,
 		},
 		{
-			name:       "unnamed struct",
-			src:        tstUnnamedStruct,
-			checkFn:    testUnnamedStruct,
-			useStructs: true,
+			name:    "unnamed struct",
+			src:     tstUnnamedStruct,
+			checkFn: testUnnamedStruct,
+		},
+		{
+			name:    "NOT.IN as members",
+			src:     tstNotInAsFieldNames,
+			checkFn: testNotInAsFieldNames,
+		},
+		{
+			name:    "NOT AND",
+			src:     tstNotAnd,
+			checkFn: testNotAnd,
+		},
+		{
+			name:    "NOT AND OR",
+			src:     tstNotAndOr,
+			checkFn: testNotAndOr,
 		},
 	}
 
@@ -276,15 +276,6 @@ func TestParse(t *testing.T) {
 
 			opts := []ParserOption{
 				ErrorHandlerOption(testErrHandler(t)),
-			}
-			if tc.useStructs {
-				opts = append(opts, UseStructsOption)
-			}
-			if tc.useArray {
-				opts = append(opts, UseArraysOption)
-			}
-			if tc.useInComparator {
-				opts = append(opts, UseInComparatorOption)
 			}
 			p := NewParser(tc.src, opts...)
 

@@ -57,8 +57,8 @@ type FieldSelectorExpr struct {
 	// Traversal is the expression related to this field literal.
 	// This field is used as a linked list to traverse the field literals.
 	// The whole path can be reconstructed by traversing the linked list.
-	// It may be another FieldSelectorExpr or MapKeyExpr.
-	Traversal FilterExpr
+	// It may be another FieldSelectorExpr, MapKeyExpr and MessageSelectExpr.
+	Traversal Expr
 
 	// FieldComplexity is the complexity of the field, assigned by the parser.
 	FieldComplexity int64
@@ -130,16 +130,6 @@ func (e *FieldSelectorExpr) Free() {
 // Complexity returns the complexity of the field literal.
 func (e *FieldSelectorExpr) Complexity() int64 {
 	return e.FieldComplexity
-}
-
-// GetTraversal returns the traversal of the field literal.
-func (e *FieldSelectorExpr) GetTraversal() FilterExpr {
-	return e.Traversal
-}
-
-// SetTraversal sets the traversal of the field literal.
-func (e *FieldSelectorExpr) SetTraversal(traversal FilterExpr) {
-	e.Traversal = traversal
 }
 
 func (e *FieldSelectorExpr) isFilterExpr() {}
