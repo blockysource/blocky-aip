@@ -61,6 +61,12 @@ func TestName_Part(t *testing.T) {
 			i:    2,
 			want: "keys",
 		},
+		{
+			name: "three parts/out of range",
+			n:    "projects/{project}/keys",
+			i:    5,
+			want: "",
+		},
 	}
 
 	for _, tt := range tests {
