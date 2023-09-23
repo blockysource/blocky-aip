@@ -67,6 +67,30 @@ func TestName_Part(t *testing.T) {
 			i:    5,
 			want: "",
 		},
+		{
+			name: "three parts/-1",
+			n:    "projects/{project}/keys",
+			i:    -1,
+			want: "keys",
+		},
+		{
+			name: "three parts/-2",
+			n:    "projects/{project}/keys",
+			i:    -2,
+			want: "{project}",
+		},
+		{
+			name: "three parts/-3",
+			n:    "projects/{project}/keys",
+			i:    -3,
+			want: "projects",
+		},
+		{
+			name: "three parts/-4",
+			n:    "projects/{project}/keys",
+			i:    -4,
+			want: "",
+		},
 	}
 
 	for _, tt := range tests {
@@ -80,7 +104,15 @@ func TestName_Part(t *testing.T) {
 
 func BenchmarkName_Part(b *testing.B) {
 	n := Name("projects/{project}/keys/{key}")
-	for i := 0; i < b.N; i++ {
-		n.Part(2)
-	}
+	b.Run("Part(2)", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			n.Part(2)
+		}
+	})
+
+	b.Run("Part(-2)", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			n.Part(-2)
+		}
+	})
 }

@@ -23,14 +23,43 @@ package names
 //		Name.Part(1) = {project}
 //		Name.Part(2) = keys
 //		Name.Part(3) = {key}
-//	 Name.Part(4) = ""
+//	 	Name.Part(4) = ""
+//		Name.Part(-1) = {key}
+//		Name.Part(-2) = keys
+//		Name.Part(-3) = {project}
+//		Name.Part(-4) = projects
+//		Name.Part(-5) = ""
 type Name string
 
 // Part returns the i-th part of the resource name.
+// The index i is zero-based, so the first part of the name has index 0.
+// If i is negative, the part is counted from the end of the name (i.e. -1 is the last part).
+// The function call is safe for out-of-range indices, thus, it can be used to iterate over the name parts.
+// If the index is out of range, the function returns an empty string.
 func (n Name) Part(i int) string {
 	if len(n) == 0 {
 		return ""
 	}
+
+	if i < 0 {
+		neg := -i
+		var partStart, partEnd int
+		// Iterate from the end of the string.
+		partStart = len(n)
+		for j := 1; j <= neg; j++ {
+			partEnd = partStart
+			for ; partStart > 0; partStart-- {
+				if n[partStart-1] == '/' {
+					if j != neg {
+						partStart--
+					}
+					break
+				}
+			}
+		}
+		return string(n[partStart:partEnd])
+	}
+
 	var partStart, partEnd int
 	for j := 0; j <= i; j++ {
 		partStart = partEnd
