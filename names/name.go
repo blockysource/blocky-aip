@@ -74,3 +74,19 @@ func (n Name) Part(i int) string {
 	}
 	return string(n[partStart:partEnd])
 }
+
+// Parts returns the number of parts in the resource name.
+func (n Name) Parts() int {
+	if len(n) == 0 {
+		return 0
+	}
+
+	// The first part is always present.
+	parts := 1
+	for _, r := range n {
+		if r == '/' {
+			parts++
+		}
+	}
+	return parts
+}
