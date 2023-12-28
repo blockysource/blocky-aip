@@ -19,7 +19,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
-	blockyannotations "github.com/blockysource/go-genproto/blocky/api/annotations"
+	"github.com/blockysource/go-genproto/blocky/api/annotationspb"
 )
 
 // MessageInfo is a struct that contains information about a message.
@@ -268,7 +268,7 @@ func (b *mapper) mapMessage(msg protoreflect.MessageDescriptor) {
 }
 
 func getFieldComplexity(fdt protoreflect.FieldDescriptor) int64 {
-	c, ok := proto.GetExtension(fdt.Options(), blockyannotations.E_Complexity).(int64)
+	c, ok := proto.GetExtension(fdt.Options(), annotationspb.E_Complexity).(int64)
 	if !ok || c == 0 {
 		return 1
 	}
@@ -277,12 +277,12 @@ func getFieldComplexity(fdt protoreflect.FieldDescriptor) int64 {
 
 // isFieldFilteringForbidden returns true if the field filtering is forbidden.
 func isFieldFilteringForbidden(field protoreflect.FieldDescriptor) bool {
-	opts, ok := proto.GetExtension(field.Options(), blockyannotations.E_QueryOpt).([]blockyannotations.FieldQueryOption)
+	opts, ok := proto.GetExtension(field.Options(), annotationspb.E_QueryOpt).([]annotationspb.FieldQueryOption)
 	if !ok {
 		return false
 	}
 	for _, opt := range opts {
-		if opt == blockyannotations.FieldQueryOption_FORBID_FILTERING {
+		if opt == annotationspb.FieldQueryOption_FORBID_FILTERING {
 			return true
 		}
 	}
@@ -291,12 +291,12 @@ func isFieldFilteringForbidden(field protoreflect.FieldDescriptor) bool {
 
 // isFieldOrderingForbidden returns true if the field filtering is forbidden.
 func isFieldOrderingForbidden(field protoreflect.FieldDescriptor) bool {
-	opts, ok := proto.GetExtension(field.Options(), blockyannotations.E_QueryOpt).([]blockyannotations.FieldQueryOption)
+	opts, ok := proto.GetExtension(field.Options(), annotationspb.E_QueryOpt).([]annotationspb.FieldQueryOption)
 	if !ok {
 		return false
 	}
 	for _, opt := range opts {
-		if opt == blockyannotations.FieldQueryOption_FORBID_SORTING {
+		if opt == annotationspb.FieldQueryOption_FORBID_SORTING {
 			return true
 		}
 	}
@@ -305,12 +305,12 @@ func isFieldOrderingForbidden(field protoreflect.FieldDescriptor) bool {
 
 // isFieldNonTraversal returns true if the field is non-traversal.
 func isFieldNonTraversal(field protoreflect.FieldDescriptor) bool {
-	opts, ok := proto.GetExtension(field.Options(), blockyannotations.E_QueryOpt).([]blockyannotations.FieldQueryOption)
+	opts, ok := proto.GetExtension(field.Options(), annotationspb.E_QueryOpt).([]annotationspb.FieldQueryOption)
 	if !ok {
 		return false
 	}
 	for _, opt := range opts {
-		if opt == blockyannotations.FieldQueryOption_NON_TRAVERSAL {
+		if opt == annotationspb.FieldQueryOption_NON_TRAVERSAL {
 			return true
 		}
 	}
@@ -319,12 +319,12 @@ func isFieldNonTraversal(field protoreflect.FieldDescriptor) bool {
 
 // isFieldNoTextSearch returns true if the field is no text search.
 func isFieldNoTextSearch(field protoreflect.FieldDescriptor) bool {
-	opts, ok := proto.GetExtension(field.Options(), blockyannotations.E_QueryOpt).([]blockyannotations.FieldQueryOption)
+	opts, ok := proto.GetExtension(field.Options(), annotationspb.E_QueryOpt).([]annotationspb.FieldQueryOption)
 	if !ok {
 		return false
 	}
 	for _, opt := range opts {
-		if opt == blockyannotations.FieldQueryOption_NO_TEXT_SEARCH {
+		if opt == annotationspb.FieldQueryOption_NO_TEXT_SEARCH {
 			return true
 		}
 	}
