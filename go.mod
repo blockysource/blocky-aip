@@ -17,14 +17,17 @@ module github.com/blockysource/blocky-aip
 go 1.20
 
 require (
-	github.com/blockysource/go-genproto v0.0.0-20230819143112-09249964af66
-	google.golang.org/genproto/googleapis/api v0.0.0-20230815205213-6bfd019c3878
-	google.golang.org/grpc v1.57.0
-	google.golang.org/protobuf v1.31.0
+	github.com/blockysource/go-genproto v0.0.0-20240206012321-9b082ac5563c
+	google.golang.org/genproto/googleapis/api v0.0.0-20240108191215-35c7eff3a6b1
+	google.golang.org/grpc v1.60.1
+	google.golang.org/protobuf v1.32.0
 )
 
 require (
 	github.com/golang/protobuf v1.5.3 // indirect
-	google.golang.org/genproto v0.0.0-20230803162519-f966b187b2e5 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20230803162519-f966b187b2e5 // indirect
+	golang.org/x/net v0.17.0 // indirect
+	golang.org/x/sys v0.13.0 // indirect
+	golang.org/x/text v0.13.0 // indirect
+	google.golang.org/genproto v0.0.0-20240102182953-50ed04b92917 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240102182953-50ed04b92917 // indirect
 )
